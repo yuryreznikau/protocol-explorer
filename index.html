@@ -1,19 +1,19 @@
 <!doctype html>
-<html lang="fa" dir="rtl">
+<html lang="ru">
   <head>
     <meta charset="UTF-8" />
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>کاوشگر پروتکل‌ها (Protocol Explorer) — آموزش نحوه کارکرد اینترنت</title>
+    <title>Protocol Explorer — протоколы прикладного уровня и мониторинга сети</title>
     <meta
       name="description"
-      content="Watch the internet work, packet by packet. Interactive lessons on HTTP, HTTPS, TCP, UDP, IP, DNS, DHCP, ICMP, SMTP, POP3, IMAP, FTP, SSH and TLS, with every packet decoded byte by byte. In English, Spanish, Portuguese, French, German, Turkish, Indonesian, Japanese, Chinese (Simplified and Traditional), Korean, Hindi, Arabic and Hebrew."
+      content="Интерактивные уроки по протоколам прикладного уровня: HTTP, HTTPS, HTTP/2, HTTP/3, DNS, DHCP, SMTP, POP3, IMAP, FTP, SSH, WebSocket, MQTT, SSE, gRPC, а также SNMP, NetFlow и Syslog (UDP и TCP). Каждый пакет разобран побайтно. На русском и английском."
     />
     <meta name="author" content="Dilum Sanjaya" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#fdfdfe" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)" />
-    <link rel="canonical" href="https://protocol-explorer-alpha.vercel.app/" />
+    <link rel="canonical" href="https://yuryreznikau.github.io/protocol-explorer/" />
     <link rel="icon" href="./favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
@@ -24,42 +24,30 @@
     <meta property="og:site_name" content="Protocol Explorer" />
     <meta property="og:title" content="Protocol Explorer · Learn how the internet works" />
     <meta property="og:description" content="Watch the internet work, packet by packet: interactive lessons from DNS and TCP to TLS, with every packet decoded byte by byte." />
-    <meta property="og:url" content="https://protocol-explorer-alpha.vercel.app/" />
-    <meta property="og:image" content="https://protocol-explorer-alpha.vercel.app/og.png" />
+    <meta property="og:url" content="https://yuryreznikau.github.io/protocol-explorer/" />
+    <meta property="og:image" content="https://yuryreznikau.github.io/protocol-explorer/og.png" />
     <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Protocol Explorer: a network diagram with a TLS Server Hello packet travelling from the internet to a laptop's router." />
-    <meta property="og:locale" content="en_US" />
-    <meta property="og:locale:alternate" content="es_ES" />
-    <meta property="og:locale:alternate" content="pt_BR" />
-    <meta property="og:locale:alternate" content="fr_FR" />
-    <meta property="og:locale:alternate" content="de_DE" />
-    <meta property="og:locale:alternate" content="tr_TR" />
-    <meta property="og:locale:alternate" content="id_ID" />
-    <meta property="og:locale:alternate" content="ja_JP" />
-    <meta property="og:locale:alternate" content="zh_CN" />
-    <meta property="og:locale:alternate" content="zh_TW" />
-    <meta property="og:locale:alternate" content="ko_KR" />
-    <meta property="og:locale:alternate" content="hi_IN" />
-    <meta property="og:locale:alternate" content="ar_AR" />
-    <meta property="og:locale:alternate" content="he_IL" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:locale:alternate" content="en_US" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:creator" content="@DilumSanjaya" />
     <meta name="twitter:title" content="Protocol Explorer · Learn how the internet works" />
     <meta name="twitter:description" content="Watch the internet work, packet by packet: interactive lessons from DNS and TCP to TLS, with every packet decoded byte by byte." />
-    <meta name="twitter:image" content="https://protocol-explorer-alpha.vercel.app/og.png" />
+    <meta name="twitter:image" content="https://yuryreznikau.github.io/protocol-explorer/og.png" />
     <meta name="twitter:image:alt" content="Protocol Explorer: a network diagram with a TLS Server Hello packet travelling from the internet to a laptop's router." />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "Protocol Explorer",
-        "url": "https://protocol-explorer-alpha.vercel.app/",
+        "url": "https://yuryreznikau.github.io/protocol-explorer/",
         "description": "Interactive lessons on how internet protocols work, with every packet decoded byte by byte.",
         "applicationCategory": "EducationalApplication",
         "operatingSystem": "Any",
-        "inLanguage": ["en", "es", "pt-BR", "fr", "de", "tr", "id", "ja", "zh-CN", "zh-TW", "ko", "hi", "ar", "he"],
+        "inLanguage": ["ru", "en"],
         "isAccessibleForFree": true,
         "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
         "author": { "@type": "Person", "name": "Dilum Sanjaya", "url": "https://x.com/DilumSanjaya" }
@@ -77,14 +65,14 @@
         document.documentElement.dataset.theme = 'light'
       }
     </script>
-    <script type="module" crossorigin src="./assets/index-4NePqLyW.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-D7FMEo1m.css">
+    <script type="module" crossorigin src="./assets/index.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index.css">
   </head>
   <body>
     <div id="app"></div>
     <noscript>
       <p style="margin: 40px; font: 16px/1.5 ui-monospace, monospace; color: #00238a">
-        Protocol Explorer animates packets as they travel the network, so it needs JavaScript. Please turn it on to start the lessons.
+        Protocol Explorer анимирует пакеты в сети, поэтому ему нужен JavaScript. Включите его, чтобы начать уроки. / Protocol Explorer needs JavaScript to animate the lessons.
       </p>
     </noscript>
   </body>

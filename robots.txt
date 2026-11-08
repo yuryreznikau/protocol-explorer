@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://protocol-explorer-alpha.vercel.app/sitemap.xml
+Sitemap: https://yuryreznikau.github.io/protocol-explorer/sitemap.xml

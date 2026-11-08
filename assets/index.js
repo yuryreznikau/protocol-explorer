@@ -1,0 +1,12654 @@
+(function () {
+  const t = document.createElement("link").relList;
+  if (t && t.supports && t.supports("modulepreload")) return;
+  for (const n of document.querySelectorAll('link[rel="modulepreload"]')) a(n);
+  new MutationObserver((n) => {
+    for (const o of n)
+      if (o.type === "childList")
+        for (const r of o.addedNodes)
+          r.tagName === "LINK" && r.rel === "modulepreload" && a(r);
+  }).observe(document, { childList: !0, subtree: !0 });
+  function s(n) {
+    const o = {};
+    return (
+      n.integrity && (o.integrity = n.integrity),
+      n.referrerPolicy && (o.referrerPolicy = n.referrerPolicy),
+      n.crossOrigin === "use-credentials"
+        ? (o.credentials = "include")
+        : n.crossOrigin === "anonymous"
+          ? (o.credentials = "omit")
+          : (o.credentials = "same-origin"),
+      o
+    );
+  }
+  function a(n) {
+    if (n.ep) return;
+    n.ep = !0;
+    const o = s(n);
+    fetch(n.href, o);
+  }
+})();
+const f = "192.168.1.10",
+  rt = "192.168.1.1",
+  Ts = "198.51.100.7",
+  Me = 14,
+  De = 20,
+  He = 20,
+  _t = 22,
+  K = 1460,
+  N = (e) => `${e.toFixed(3)}s`,
+  be = (e) => Math.max(60, Me + De + He + e),
+  ia = (e) => Me + De + He + _t + e,
+  ye = (...e) => e.reduce((t, s) => t + s.length + 2, 0),
+  wt = (e) => (e >= 1024 ? `${(e / 1024).toFixed(1)} KB` : `${e} B`),
+  Ze = (e) => Math.ceil(e / K),
+  it = (e, t = 1) => (t > 1 ? wt(e) : `${e} B`),
+  u = (e, t, s, a, n, o, r = {}) => ({
+    type: "packet",
+    from: e,
+    to: t,
+    color: s,
+    label: a,
+    payload: n,
+    row: o,
+    ...r,
+  });
+function $e(e, t, s, a) {
+  return {
+    a: e,
+    b: s,
+    ports: (n) => (n === e ? { sport: t, dport: a } : { sport: a, dport: t }),
+  };
+}
+const O = (e, t, s, a, n = {}) => ({
+    tcp: { ...e.ports(t), flags: s, data: a, ...n },
+  }),
+  la = 12;
+function Je({
+  from: e = "client",
+  to: t = "web",
+  src: s = f,
+  dst: a,
+  sport: n,
+  dport: o,
+  t: r,
+  quick: i = !0,
+  linux: l = !1,
+}) {
+  const c = (w, k, g, T, v, I) => ({
+      time: N(w),
+      src: k,
+      dst: g,
+      proto: "TCP",
+      info: T,
+      len: `${v} B`,
+      wire: I,
+    }),
+    h = (w) => (i ? [] : w),
+    d = $e(s, n, a, o),
+    y = l ? la : 0;
+  return [
+    u(
+      e,
+      t,
+      "green",
+      "SYN",
+      h(["seq=0"]),
+      c(r[0], s, a, `${n} → ${o} [SYN] Seq=0`, l ? 74 : 66, O(d, s, "S")),
+      { quick: i },
+    ),
+    u(
+      t,
+      e,
+      "green",
+      "SYN-ACK",
+      h(["seq=0 ack=1"]),
+      c(
+        r[1],
+        a,
+        s,
+        `${o} → ${n} [SYN, ACK] Seq=0 Ack=1`,
+        l ? 74 : 66,
+        O(d, a, "SA"),
+      ),
+      { quick: i },
+    ),
+    u(
+      e,
+      t,
+      "green",
+      "ACK",
+      h(["seq=1 ack=1"]),
+      c(r[2], s, a, `${n} → ${o} [ACK] Seq=1 Ack=1`, be(y), O(d, s, "A")),
+      { quick: i },
+    ),
+  ];
+}
+const oi = 2862,
+  ri = (e) => ({
+    tls: [
+      {
+        type: "handshake",
+        legacy: !0,
+        length: 512,
+        hello: {
+          type: 1,
+          name: "Client Hello",
+          note: "What this client supports. Its exact contents vary from client to client; this is an example.",
+          fields: [
+            ["Server name (SNI)", e],
+            ["Versions offered", "TLS 1.3, TLS 1.2"],
+            ["Key share", "X25519"],
+            ["Padding", "up to 512 bytes"],
+          ],
+        },
+      },
+    ],
+  }),
+  ii = (e = "X25519", t = 122) => ({
+    tls: [
+      {
+        type: "handshake",
+        length: t,
+        hello: {
+          type: 2,
+          name: "Server Hello",
+          note: "The server’s choices and its key share.",
+          fields: [
+            ["Version", "TLS 1.3"],
+            ["Cipher suite", "TLS_AES_128_GCM_SHA256"],
+            ["Key share", e],
+          ],
+        },
+      },
+      { type: "ccs", length: 1 },
+      {
+        type: "appdata",
+        length: 2724,
+        inner: {
+          what: "Encrypted Extensions, Certificate (the chain), Certificate Verify (the signature), Finished",
+        },
+      },
+    ],
+  }),
+  ca = {
+    tls: [
+      { type: "ccs", length: 1 },
+      {
+        type: "appdata",
+        length: 53,
+        inner: { what: "Finished: a check value over the whole handshake" },
+      },
+    ],
+  },
+  da = (e, t) => ({
+    tls: [
+      { type: "appdata", length: ye(...e) + 17, inner: { what: t, text: e } },
+    ],
+  }),
+  li = (e, t) => ({
+    tls: [{ type: "appdata", length: e + 17, inner: { what: t } }],
+  });
+function rn({
+  from: e = "client",
+  to: t = "web",
+  src: s = f,
+  dst: a,
+  sni: n,
+  sport: o,
+  dport: r,
+  t: i,
+  linux: l = !1,
+}) {
+  const c = (w, k, g, T, v, I) => ({
+      time: N(w),
+      src: k,
+      dst: g,
+      proto: "TLSv1.3",
+      info: T,
+      len: v,
+      wire: I,
+    }),
+    h = $e(s, o, a, r),
+    d = l ? la : 0,
+    y = oi + 2 * (Me + De + He + d);
+  return [
+    u(
+      e,
+      t,
+      "teal",
+      "CLIENT HELLO",
+      [],
+      c(
+        i[0],
+        s,
+        a,
+        `Client Hello (SNI=${n})`,
+        `${517 + Me + De + He + d} B`,
+        O(h, s, "PA", ri(n)),
+      ),
+      { quick: !0 },
+    ),
+    u(
+      t,
+      e,
+      "teal",
+      "SERVER HELLO",
+      [],
+      c(
+        i[1],
+        a,
+        s,
+        "Server Hello + encrypted handshake, 2 segments",
+        wt(y),
+        O(h, a, "PA", ii()),
+      ),
+      { quick: !0 },
+    ),
+    u(
+      e,
+      t,
+      "teal",
+      "FINISHED",
+      [],
+      c(
+        i[2],
+        s,
+        a,
+        "Change Cipher Spec, Finished (encrypted)",
+        `${64 + Me + De + He + d} B`,
+        O(h, s, "PA", ca),
+      ),
+      { quick: !0 },
+    ),
+  ];
+}
+const $n = "8.8.8.8",
+  Es = "203.0.113.10",
+  Go = [
+    "GET / HTTP/1.1",
+    "Host: www.example.com",
+    "Connection: keep-alive",
+    "Upgrade-Insecure-Requests: 1",
+    "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+    "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "Accept-Encoding: gzip, deflate",
+    "Accept-Language: en-US,en;q=0.9",
+    "",
+  ],
+  ci = ye(...Go),
+  Ot = 12500,
+  Yo = [
+    "HTTP/1.1 200 OK",
+    "Date: Sat, 31 Oct 2026 09:41:00 GMT",
+    "Content-Type: text/html; charset=utf-8",
+    `Content-Length: ${Ot}`,
+    "Connection: keep-alive",
+    "",
+  ],
+  Wo = ye(...Yo) + Ot,
+  Ka = $e(f, 52344, Es, 80),
+  Ua = { id: 15642, rd: !0, q: ["www.example.com", "A"] },
+  Ba = (e, t) => ({
+    udp:
+      e === f
+        ? { sport: 59321, dport: 53, data: { dns: t } }
+        : { sport: 53, dport: 59321, data: { dns: t } },
+  }),
+  Yt = Ze(Wo),
+  di = Wo + Yt * (Me + De + He),
+  Ga = 0.094,
+  pi = {
+    id: "http",
+    name: "HTTP",
+    title: "Web Communication",
+    layer: 7,
+    nodes: ["client", "router", "dns", "internet", "web"],
+    latency: { "client-dns": 0.012, "client-web": 0.017 },
+    legend: [
+      ["blue", "DNS"],
+      ["green", "TCP"],
+      ["amber", "Request"],
+      ["violet", "Response"],
+      [null, "Data ACKs not shown"],
+    ],
+    overview: {
+      full: "Hypertext Transfer Protocol",
+      description:
+        "HTTP is the protocol of the web: a client asks for a resource, such as an HTML page, and the server answers with a status code, headers and usually a body. Every exchange is one request and one response, written as readable text in HTTP/1.1.",
+      facts: [
+        ["Layer", "Application (Layer 7)"],
+        ["Default Port", "80 (HTTPS: 443)"],
+        ["Transport", "TCP"],
+        ["Data Format", "Text (headers + optional body)"],
+        ["Common Methods", "GET, POST, PUT, DELETE, HEAD"],
+        ["Defined In", "RFC 9110, RFC 9112"],
+      ],
+    },
+    outro: {
+      title: "Page delivered",
+      desc: "One request, one response",
+      text: "In under a tenth of a second the laptop looked up an address, opened a TCP connection and exchanged one HTTP request and response, all of it readable by anyone on the path. Press REPLAY to watch it again.",
+      facts: [
+        ["Round trips", "3 (DNS, TCP, HTTP)"],
+        ["Total time", `${Ga.toFixed(3)} s`],
+        ["Page size", wt(Ot)],
+        ["Response", `Sent as ${Yt} TCP segments`],
+      ],
+    },
+    start: { nodes: ["client"], frame: "client" },
+    steps: [
+      {
+        title: "Client Request",
+        desc: "Browser prepares the request",
+        detail:
+          "You open http://www.example.com. The browser will send a GET request, but packets travel to IP addresses, not names, so first it needs the server’s address. (Browsers now try https:// first; this is the plain version.)",
+        facts: [
+          ["URL", "http://www.example.com/"],
+          ["Method", "GET"],
+          ["Next hop", "Router 192.168.1.1"],
+        ],
+        events: [
+          { type: "type-url", text: "www.example.com" },
+          { type: "show", nodes: ["router"], frame: "local" },
+        ],
+      },
+      {
+        title: "DNS Resolution",
+        desc: "Finds the server’s IP address",
+        detail:
+          "The laptop asks the DNS server it was given by DHCP, 8.8.8.8, for the address of www.example.com. The query goes over UDP port 53 and the answer is an A record with the IPv4 address. (On a network with IPv6 it would also ask for an AAAA record.)",
+        facts: [
+          ["Resolver", "8.8.8.8 (had it cached)"],
+          ["Transport", "UDP, port 53"],
+          ["Answer", "A 203.0.113.10"],
+        ],
+        events: [
+          { type: "show", nodes: ["internet", "dns"], frame: "lookup" },
+          u("client", "dns", "blue", "DNS QUERY", ["A? www.example.com"], {
+            time: N(0),
+            src: f,
+            dst: $n,
+            proto: "DNS",
+            info: "Standard query A www.example.com",
+            len: "75 B",
+            wire: Ba(f, Ua),
+          }),
+          u("dns", "client", "blue", "DNS REPLY", ["A 203.0.113.10"], {
+            time: N(0.012),
+            src: $n,
+            dst: f,
+            proto: "DNS",
+            info: "Standard query response A 203.0.113.10",
+            len: "91 B",
+            wire: Ba($n, {
+              ...Ua,
+              response: !0,
+              ra: !0,
+              an: [["www.example.com", "A", 1745, "203.0.113.10"]],
+              exampleTtl: !0,
+            }),
+          }),
+        ],
+      },
+      {
+        title: "TCP Connection",
+        desc: "Establishes a reliable link",
+        detail:
+          "HTTP runs on top of TCP. Before any page data moves, the laptop and the server open a connection to port 80 with a three-way handshake: SYN, SYN-ACK, ACK.",
+        facts: [
+          ["Server port", "80"],
+          ["Client port", "52344 (ephemeral)"],
+          ["Handshake", "SYN → SYN-ACK → ACK"],
+        ],
+        events: [
+          { type: "show", nodes: ["web"], frame: "full" },
+          ...Je({
+            dst: Es,
+            sport: 52344,
+            dport: 80,
+            t: [0.024, 0.041, 0.058],
+            quick: !1,
+          }),
+        ],
+      },
+      {
+        title: "HTTP Exchange",
+        desc: "Request and response messages",
+        detail: `The browser sends a GET request with a Host header. The server answers 200 OK with the HTML in the body: ${wt(Ot)}, too big for one packet, so TCP splits it into ${Yt} segments of up to ${K} bytes (drawn here as one).`,
+        facts: [
+          ["Status", "200 OK"],
+          ["Body", `text/html, ${wt(Ot)}`],
+          ["Sent as", `${Yt} TCP segments`],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "GET /",
+            ["GET / HTTP/1.1", "Host: www.example.com"],
+            {
+              time: N(0.058),
+              src: f,
+              dst: Es,
+              proto: "HTTP",
+              info: "GET / HTTP/1.1",
+              len: `${be(ci)} B`,
+              wire: O(Ka, f, "PA", { text: Go }),
+            },
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "200 OK",
+            ["HTTP/1.1 200 OK", `${wt(Ot)} in ${Yt} segments`],
+            {
+              time: N(0.076),
+              src: Es,
+              dst: f,
+              proto: "HTTP",
+              info: `HTTP/1.1 200 OK (text/html), ${Yt} segments`,
+              len: it(di, Yt),
+              wire: O(Ka, Es, "PA", {
+                http: { lines: Yo, body: Ot, what: "the HTML page" },
+              }),
+            },
+          ),
+        ],
+      },
+      {
+        title: "Page Rendering",
+        desc: "Browser displays the content",
+        detail:
+          "The browser parses the HTML and paints the page. Linked CSS, images and scripts would each start more requests just like this one, reusing the open connection where they can.",
+        facts: [
+          ["Document", `text/html, ${wt(Ot)}`],
+          ["Connection", "Kept open for reuse"],
+          ["Total time", `${Ga.toFixed(3)} s`],
+        ],
+        events: [{ type: "camera", frame: "client" }, { type: "render" }],
+      },
+    ],
+  },
+  Ln = "8.8.8.8",
+  Xe = "203.0.113.10",
+  Pn = { locked: !0 },
+  pa = [
+    "GET / HTTP/1.1",
+    "Host: www.example.com",
+    "Connection: keep-alive",
+    'sec-ch-ua: "Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"',
+    "sec-ch-ua-mobile: ?0",
+    'sec-ch-ua-platform: "Windows"',
+    "Upgrade-Insecure-Requests: 1",
+    "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+    "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "Sec-Fetch-Site: none",
+    "Sec-Fetch-Mode: navigate",
+    "Sec-Fetch-User: ?1",
+    "Sec-Fetch-Dest: document",
+    "Accept-Encoding: gzip, deflate, br, zstd",
+    "Accept-Language: en-US,en;q=0.9",
+    "",
+  ],
+  Qn = ye(...pa) + _t,
+  Is = 12500,
+  ha = [
+    "HTTP/1.1 200 OK",
+    "Date: Sat, 31 Oct 2026 09:41:00 GMT",
+    "Content-Type: text/html; charset=utf-8",
+    `Content-Length: ${Is}`,
+    "Connection: keep-alive",
+    "Strict-Transport-Security: max-age=31536000",
+    "",
+  ],
+  un = ye(...ha) + Is + _t,
+  $s = Ze(un),
+  zn = un + $s * (Me + De + He),
+  ua = 2 * (217 + _t),
+  Ya = 0.13,
+  jo = {
+    tls: [
+      {
+        type: "handshake",
+        legacy: !0,
+        length: 1845,
+        hello: {
+          type: 1,
+          name: "Client Hello",
+          note: "Everything the browser supports. Browsers vary a few details from one connection to the next.",
+          fields: [
+            ["Server name (SNI)", "www.example.com"],
+            ["Versions offered", "TLS 1.3, TLS 1.2"],
+            ["Key shares", "X25519MLKEM768 (1,216 bytes), X25519"],
+            ["App protocols (ALPN)", "h2, http/1.1"],
+          ],
+        },
+      },
+    ],
+  },
+  Zn = {
+    tls: [
+      {
+        type: "handshake",
+        length: 1210,
+        hello: {
+          type: 2,
+          name: "Server Hello",
+          note: "The server’s choices and its half of the hybrid key exchange.",
+          fields: [
+            ["Version", "TLS 1.3"],
+            ["Cipher suite", "TLS_AES_128_GCM_SHA256"],
+            ["Key share", "X25519MLKEM768 (1,120 bytes)"],
+          ],
+        },
+      },
+      { type: "ccs", length: 1 },
+      {
+        type: "appdata",
+        length: 2724,
+        inner: {
+          what: "Encrypted Extensions (ALPN: http/1.1), Certificate (the chain), Certificate Verify (the signature), Finished",
+        },
+      },
+    ],
+  },
+  Jn = {
+    type: "appdata",
+    length: ua / 2 - 5,
+    inner: { what: "New Session Ticket: lets a later visit resume" },
+  },
+  zt = $e(f, 52411, Xe, 443),
+  Wa = { id: 31810, rd: !0, q: ["www.example.com", "A"] },
+  ja = (e, t) => ({
+    udp:
+      e === f
+        ? { sport: 61744, dport: 53, data: { dns: t } }
+        : { sport: 53, dport: 61744, data: { dns: t } },
+  }),
+  Ie = {
+    REQUEST: Qn,
+    RESPONSE: un,
+    SEGMENTS: $s,
+    RESPONSE_FRAMES: zn,
+    TICKETS: ua,
+    REQUEST_LINES: pa,
+    RESPONSE_LINES: ha,
+    BODY: Is,
+    TICKET: Jn,
+  },
+  hi = {
+    id: "https",
+    name: "HTTPS",
+    title: "Secure Web",
+    layer: 7,
+    nodes: ["client", "router", "dns", "internet", "web"],
+    latency: { "client-dns": 0.012, "client-web": 0.017 },
+    legend: [
+      ["blue", "DNS"],
+      ["green", "TCP"],
+      ["teal", "TLS handshake"],
+      ["amber", "HTTP request"],
+      ["violet", "HTTP response"],
+      [null, "Data ACKs not shown"],
+    ],
+    overview: {
+      full: "HTTP Secure",
+      description:
+        "HTTPS is HTTP sent through an encrypted TLS connection. TLS proves the server is who it claims to be with a certificate, agrees on fresh encryption keys, and then protects every request and response from being read or changed on the way.",
+      facts: [
+        ["Layer", "Application (HTTP over TLS)"],
+        ["Default Port", "443"],
+        ["Transport", "TCP"],
+        ["Security", "TLS 1.3 (1.2 still common)"],
+        ["Proves", "Server identity (certificate)"],
+        ["Defined In", "RFC 9110, RFC 8446"],
+      ],
+    },
+    outro: {
+      title: "Secure page delivered",
+      desc: "Encrypted, except the lookup",
+      text: "The browser looked up the address in plain DNS, opened a TCP connection, checked the server’s certificate and agreed on keys in one round trip. Every HTTP byte after that travelled encrypted. Press REPLAY to watch it again.",
+      facts: [
+        ["Round trips", "4 (DNS, TCP, TLS, HTTP)"],
+        ["Total time", `${Ya.toFixed(3)} s`],
+        ["Cipher", "TLS_AES_128_GCM_SHA256"],
+        ["Still visible", "IPs, server name, sizes"],
+      ],
+    },
+    start: { nodes: ["client"], frame: "client" },
+    steps: [
+      {
+        title: "Secure Request",
+        desc: "Browser asks for https://",
+        detail:
+          "You type https://www.example.com. The “s” tells the browser to protect the connection with TLS, on port 443 by default. Before it can connect at all, it still has to find the server’s IP address.",
+        facts: [
+          ["URL", "https://www.example.com/"],
+          ["Port", "443"],
+          ["Next hop", "Router 192.168.1.1"],
+        ],
+        events: [
+          { type: "type-url", text: "https://www.example.com", secure: !0 },
+          { type: "show", nodes: ["router"], frame: "local" },
+        ],
+      },
+      {
+        title: "DNS Lookup",
+        desc: "Same lookup as HTTP, not encrypted",
+        detail:
+          "The lookup is exactly the same as for plain HTTP: a query to 8.8.8.8 over UDP port 53. It is not encrypted, so anyone on the path can see which name you asked for, unless the browser uses DNS over HTTPS.",
+        facts: [
+          ["Resolver", "8.8.8.8 (had it cached)"],
+          ["Encrypted", "No (plain DNS)"],
+          ["Answer", "A 203.0.113.10"],
+        ],
+        events: [
+          { type: "show", nodes: ["internet", "dns"], frame: "lookup" },
+          u("client", "dns", "blue", "DNS QUERY", ["A? www.example.com"], {
+            time: N(0),
+            src: f,
+            dst: Ln,
+            proto: "DNS",
+            info: "Standard query A www.example.com",
+            len: "75 B",
+            wire: ja(f, Wa),
+          }),
+          u("dns", "client", "blue", "DNS REPLY", ["A 203.0.113.10"], {
+            time: N(0.012),
+            src: Ln,
+            dst: f,
+            proto: "DNS",
+            info: "Standard query response A 203.0.113.10",
+            len: "91 B",
+            wire: ja(Ln, {
+              ...Wa,
+              response: !0,
+              ra: !0,
+              an: [["www.example.com", "A", 1722, "203.0.113.10"]],
+              exampleTtl: !0,
+            }),
+          }),
+        ],
+      },
+      {
+        title: "TCP Handshake",
+        desc: "Opens a connection to port 443",
+        detail:
+          "TLS rides on TCP, so the same three-way handshake comes first, this time to port 443. Nothing is encrypted yet.",
+        facts: [
+          ["Server port", "443"],
+          ["Client port", "52411 (ephemeral)"],
+          ["Handshake", "SYN → SYN-ACK → ACK"],
+        ],
+        events: [
+          { type: "show", nodes: ["web"], frame: "full" },
+          ...Je({
+            dst: Xe,
+            sport: 52411,
+            dport: 443,
+            t: [0.024, 0.041, 0.058],
+            quick: !1,
+          }),
+        ],
+      },
+      {
+        title: "TLS Handshake",
+        desc: "Agrees on keys, checks the certificate",
+        detail:
+          "The browser offers ciphers and key shares, including a post-quantum hybrid. The server picks it and sends its own share, then its certificate, already encrypted. The browser checks it against authorities it trusts.",
+        facts: [
+          ["Version", "TLS 1.3"],
+          ["Key exchange", "X25519MLKEM768 (hybrid)"],
+          ["Server name", "Sent in clear (SNI)"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "teal",
+            "CLIENT HELLO",
+            ["TLS 1.3, SNI www.example.com", "key shares: hybrid + x25519"],
+            {
+              time: N(0.058),
+              src: f,
+              dst: Xe,
+              proto: "TLSv1.3",
+              info: "Client Hello (SNI=www.example.com), 2 segments",
+              len: "1.9 KB",
+              wire: O(zt, f, "PA", jo),
+            },
+          ),
+          u(
+            "web",
+            "client",
+            "teal",
+            "SERVER HELLO",
+            ["cipher: AES_128_GCM_SHA256", "then encrypted: cert, Finished"],
+            {
+              time: N(0.076),
+              src: Xe,
+              dst: f,
+              proto: "TLSv1.3",
+              info: "Server Hello + encrypted handshake, 3 segments",
+              len: "4.0 KB",
+              wire: O(zt, Xe, "PA", Zn),
+            },
+          ),
+          {
+            type: "note",
+            at: "client",
+            text: "CERTIFICATE VALID",
+            tone: "green",
+          },
+          u(
+            "client",
+            "web",
+            "teal",
+            "FINISHED",
+            ["handshake complete (encrypted)"],
+            {
+              time: N(0.094),
+              src: f,
+              dst: Xe,
+              proto: "TLSv1.3",
+              info: "Change Cipher Spec, Finished (encrypted)",
+              len: "118 B",
+              wire: O(zt, f, "PA", ca),
+            },
+          ),
+        ],
+      },
+      {
+        title: "Encrypted Exchange",
+        desc: "HTTP inside TLS records",
+        detail:
+          "The GET and 200 OK are the same HTTP messages as before, sealed in TLS records that look like random “application data” on the wire. The server also hands over two session tickets, so a later visit can skip part of the handshake.",
+        facts: [
+          ["Inside", "GET / and 200 OK"],
+          ["Tickets", "2, for faster reconnects"],
+          ["Still visible", "IPs, server name, sizes"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "APP DATA",
+            ["inside: GET / HTTP/1.1", "outside: encrypted bytes"],
+            {
+              time: N(0.094),
+              src: f,
+              dst: Xe,
+              proto: "TLSv1.3",
+              info: "Application Data (HTTP request)",
+              len: it(Qn + Me + De + He),
+              wire: O(zt, f, "PA", {
+                tls: [
+                  {
+                    type: "appdata",
+                    length: Qn - 5,
+                    inner: { what: "The HTTP request", text: pa },
+                  },
+                ],
+              }),
+            },
+            Pn,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "TICKETS",
+            [],
+            {
+              time: N(0.111),
+              src: Xe,
+              dst: f,
+              proto: "TLSv1.3",
+              info: "New Session Ticket ×2 (encrypted)",
+              len: it(ua + Me + De + He),
+              wire: O(zt, Xe, "PA", { tls: [Jn, Jn] }),
+            },
+            { ...Pn, quick: !0 },
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "APP DATA",
+            ["inside: HTTP/1.1 200 OK", `outside: ${wt(zn)}, ${$s} segments`],
+            {
+              time: N(0.112),
+              src: Xe,
+              dst: f,
+              proto: "TLSv1.3",
+              info: `Application Data (HTTP response), ${$s} segments`,
+              len: it(zn, $s),
+              wire: O(zt, Xe, "PA", {
+                tls: [
+                  {
+                    type: "appdata",
+                    length: un - 5,
+                    inner: {
+                      what: `The HTTP response, then the ${Is.toLocaleString("en-US")}-byte page`,
+                      text: ha,
+                    },
+                  },
+                ],
+              }),
+            },
+            Pn,
+          ),
+        ],
+      },
+      {
+        title: "Page Rendering",
+        desc: "Browser shows the padlock",
+        detail:
+          "The browser decrypts the response, paints the page and shows a padlock: the connection is private and the server proved its identity. The Strict-Transport-Security header tells it to use HTTPS for this site from now on.",
+        facts: [
+          ["Document", `text/html, ${wt(Is)}`],
+          ["Remembers", "HTTPS only (HSTS), 1 year"],
+          ["Total time", `${Ya.toFixed(3)} s`],
+        ],
+        events: [{ type: "camera", frame: "client" }, { type: "render" }],
+      },
+    ],
+  },
+  Os = "203.0.113.10",
+  Ns = 49152,
+  Vo = [
+    "GET / HTTP/1.1",
+    "Host: www.example.com",
+    "User-Agent: curl/8.9.1",
+    "Accept: */*",
+    "",
+  ],
+  z = ye(...Vo),
+  de = 2 * K,
+  Xo = $e(f, Ns, Os, 80),
+  Qo = (e, t, s, a, n, o) => ({
+    time: N(e),
+    src: t,
+    dst: s,
+    proto: "TCP",
+    info: a,
+    len: `${n} B`,
+    wire: o,
+  }),
+  ys = (e, t, s, a, n, o) =>
+    Qo(e, f, Os, `${Ns} → 80 ${t}`, s, O(Xo, f, a, n, o)),
+  Zt = (e, t, s, a, n, o) =>
+    Qo(e, Os, f, `80 → ${Ns} ${t}`, s, O(Xo, Os, a, n, o)),
+  Cn = (e) => ({
+    opaque: K,
+    what: `the HTTP response, bytes ${e}–${e + K - 1}`,
+    name: "HTTP",
+  }),
+  fa = "192.168.1.10",
+  ln = "203.0.113.20",
+  ma = (e, t, s, a, n, o, r = {}) => ({
+    type: "packet",
+    from: e,
+    to: t,
+    color: s,
+    label: a,
+    payload: n,
+    row: o,
+    ...r,
+  }),
+  ya = (e, t) => ({
+    udp: {
+      ...(t ? { sport: 5e4, dport: 5004 } : { sport: 5004, dport: 5e4 }),
+      data: {
+        rtp: {
+          seq: (t ? 21737 : 4418) + e,
+          ts: (t ? 2617440 : 913280) + 960 * (e - 1),
+          ssrc: t ? 1590076113 : 460833806,
+          pt: 111,
+          marker: e === 1,
+          audio: 80,
+        },
+      },
+    },
+  }),
+  Kt = (e, t, s) =>
+    ma(
+      "client",
+      "web",
+      "amber",
+      `VOICE ${e}`,
+      [],
+      {
+        time: t,
+        src: fa,
+        dst: ln,
+        proto: "UDP",
+        info: "50000 → 5004 Len=92",
+        len: "134 B",
+        wire: ya(e, !0),
+      },
+      s,
+    ),
+  Rn = (e, t) =>
+    ma("web", "client", "violet", `REMOTE ${e}`, [], {
+      time: t,
+      src: ln,
+      dst: fa,
+      proto: "UDP",
+      info: "5004 → 50000 Len=92",
+      len: "134 B",
+      wire: ya(e, !1),
+    }),
+  Nt = "203.0.113.10",
+  _s = "00:00:5e:00:53:10",
+  Fs = "00:00:5e:00:53:01",
+  Va = $e(f, 52344, Nt, 443),
+  Xa = $e(Ts, 40112, Nt, 443),
+  Qa = "192.168.1.10",
+  xt = "8.8.8.8",
+  za = "198.41.0.4",
+  Za = "192.5.6.30",
+  In = "198.51.100.53",
+  $t = (e, t, s, a, n, o) => ({
+    type: "packet",
+    from: e,
+    to: t,
+    color: s,
+    label: a,
+    payload: n,
+    row: o,
+  }),
+  Lt = ["www.example.com", "A"],
+  Jt = { size: 1232 },
+  On = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"].map(
+    (e) => `${e}.gtld-servers.net`,
+  ),
+  yi = [
+    "192.5.6.30",
+    "192.33.14.30",
+    "192.26.92.30",
+    "192.31.80.30",
+    "192.12.94.30",
+    "192.35.51.30",
+    "192.42.93.30",
+    "192.54.112.30",
+    "192.43.172.30",
+    "192.48.79.30",
+    "192.52.178.30",
+    "192.41.162.30",
+    "192.55.83.30",
+  ],
+  gi = [
+    "2001:503:a83e::2:30",
+    "2001:503:231d::2:30",
+    "2001:503:83eb::30",
+    "2001:500:856e::30",
+    "2001:502:1ca1::30",
+    "2001:503:d414::30",
+    "2001:503:eea3::30",
+    "2001:502:8cc::30",
+    "2001:503:39c1::30",
+    "2001:502:7094::30",
+    "2001:503:d2d::30",
+    "2001:500:d937::30",
+    "2001:501:b1f9::30",
+  ],
+  Ks = (e, t) => ({ udp: { sport: e, dport: 53, data: { dns: t } } }),
+  Us = (e, t) => ({ udp: { sport: 53, dport: e, data: { dns: t } } }),
+  wi = {
+    id: "dns",
+    name: "DNS",
+    title: "Name Resolution",
+    layer: 7,
+    nodes: ["client", "router", "internet", "dns", "root", "tld", "auth"],
+    latency: {
+      "client-dns": 0.012,
+      "dns-root": 0.005,
+      "dns-tld": 0.01,
+      "dns-auth": 0.02,
+    },
+    legend: [
+      ["blue", "Query"],
+      ["amber", "Referral"],
+      ["green", "Answer"],
+      [null, "DNSSEC not requested here"],
+    ],
+    overview: {
+      full: "Domain Name System",
+      description:
+        "DNS turns names like www.example.com into the IP addresses computers use to reach each other. No single server knows every name: the system is a hierarchy of servers, and answers are cached along the way so most lookups never have to go far.",
+      facts: [
+        ["Layer", "Application (Layer 7)"],
+        ["Port", "53, UDP (TCP if large)"],
+        ["Turns", "Names into IP addresses"],
+        ["Hierarchy", "Root → TLD → authoritative"],
+        ["Caching", "For each record’s TTL"],
+        ["Defined In", "RFC 1034, RFC 1035"],
+      ],
+    },
+    outro: {
+      title: "Name resolved",
+      desc: "And remembered for an hour",
+      text: "Starting from an empty cache, the resolver walked from the root to .com to example.com’s own server, then answered the laptop. Until the TTL runs out, the next lookup for this name is answered straight from a cache. Press REPLAY to watch it again.",
+      facts: [
+        ["Queries", "4 (laptop 1, resolver 3)"],
+        ["Total time", "0.094 s"],
+        ["Transport", "UDP, port 53"],
+        ["Cached for", "3600 s (TTL)"],
+      ],
+    },
+    start: { nodes: ["client"], frame: "client" },
+    steps: [
+      {
+        title: "Ask the Resolver",
+        desc: "The laptop hands the question off",
+        detail:
+          "The browser needs the IP address of www.example.com and neither it nor Windows has one cached. The laptop sends one question to the recursive resolver it was given, 8.8.8.8, and asks it to do the whole lookup (recursion desired).",
+        facts: [
+          ["Question", "www.example.com, type A"],
+          ["Asked", "8.8.8.8 (recursive)"],
+          ["Flags", "RD (recursion desired)"],
+        ],
+        events: [
+          { type: "type-url", text: "www.example.com" },
+          {
+            type: "show",
+            nodes: ["router", "internet", "dns"],
+            frame: "lookup",
+          },
+          $t(
+            "client",
+            "dns",
+            "blue",
+            "DNS QUERY",
+            ["A? www.example.com", "flags: RD"],
+            {
+              time: "0.000s",
+              src: Qa,
+              dst: xt,
+              proto: "DNS",
+              info: "Standard query A www.example.com",
+              len: "75 B",
+              wire: Ks(54871, { id: 39486, rd: !0, q: Lt }),
+            },
+          ),
+        ],
+      },
+      {
+        title: "Root Server",
+        desc: "Points the way to .com",
+        detail:
+          "The resolver’s cache is empty (it has just started), so it begins at the top. A root server doesn’t know the address, but it knows which servers handle .com and replies with a referral. Many resolvers send it only “com”, not the full name.",
+        facts: [
+          ["Server", "a.root-servers.net"],
+          ["Root servers", "13 names, 1,000+ anycast sites"],
+          ["Reply", "Referral (13 .com servers)"],
+        ],
+        events: [
+          { type: "note", at: "dns", text: "NOT IN CACHE", tone: "amber" },
+          { type: "show", nodes: ["root"], frame: "root" },
+          $t("dns", "root", "blue", "DNS QUERY", ["A? www.example.com"], {
+            time: "0.012s",
+            src: xt,
+            dst: za,
+            proto: "DNS",
+            info: "Standard query A www.example.com",
+            len: "86 B",
+            wire: Ks(38143, { id: 20935, q: Lt, edns: Jt }),
+          }),
+          $t(
+            "root",
+            "dns",
+            "amber",
+            "REFERRAL",
+            ["no answer: ask .com", "com. NS a.gtld-servers.net …"],
+            {
+              time: "0.017s",
+              src: za,
+              dst: xt,
+              proto: "DNS",
+              info: "Referral: com. NS ×13 (with glue)",
+              len: "882 B",
+              wire: Us(38143, {
+                id: 20935,
+                response: !0,
+                q: Lt,
+                edns: Jt,
+                ns: On.map((e) => ["com", "NS", 172800, e]),
+                ar: [
+                  ...On.map((e, t) => [e, "A", 172800, yi[t]]),
+                  ...On.map((e, t) => [e, "AAAA", 172800, gi[t]]),
+                ],
+              }),
+            },
+          ),
+        ],
+      },
+      {
+        title: ".com TLD Server",
+        desc: "Points the way to example.com",
+        detail:
+          "The resolver asks one of the .com servers. They don’t store addresses for every site either, but they know which name servers each .com domain uses, so this reply is another referral, with those servers’ addresses (glue) attached.",
+        facts: [
+          ["Server", "a.gtld-servers.net"],
+          ["Knows", "Name servers of .com domains"],
+          ["Reply", "Referral + glue addresses"],
+        ],
+        events: [
+          { type: "show", nodes: ["tld"], frame: "tld" },
+          $t("dns", "tld", "blue", "DNS QUERY", ["A? www.example.com"], {
+            time: "0.022s",
+            src: xt,
+            dst: Za,
+            proto: "DNS",
+            info: "Standard query A www.example.com",
+            len: "86 B",
+            wire: Ks(41766, { id: 11152, q: Lt, edns: Jt }),
+          }),
+          $t(
+            "tld",
+            "dns",
+            "amber",
+            "REFERRAL",
+            ["no answer: ask example.com", "example.com. NS ns1.example.com"],
+            {
+              time: "0.032s",
+              src: Za,
+              dst: xt,
+              proto: "DNS",
+              info: "Referral: example.com. NS ×2 (with glue)",
+              len: "154 B",
+              wire: Us(41766, {
+                id: 11152,
+                response: !0,
+                q: Lt,
+                edns: Jt,
+                ns: [
+                  ["example.com", "NS", 172800, "ns1.example.com"],
+                  ["example.com", "NS", 172800, "ns2.example.com"],
+                ],
+                ar: [
+                  ["ns1.example.com", "A", 172800, In],
+                  ["ns2.example.com", "A", 172800, "198.51.100.54"],
+                ],
+              }),
+            },
+          ),
+        ],
+      },
+      {
+        title: "Authoritative Server",
+        desc: "Gives the actual answer",
+        detail:
+          "Finally the resolver asks example.com’s own name server, which holds the domain’s records. It answers with the A record and marks the reply authoritative. The domain owner sets how long it may be cached: here, 3600 seconds.",
+        facts: [
+          ["Server", "ns1.example.com"],
+          ["Answer", "A 203.0.113.10"],
+          ["Flags", "AA (authoritative), TTL 3600"],
+        ],
+        events: [
+          { type: "show", nodes: ["auth"], frame: "full" },
+          $t("dns", "auth", "blue", "DNS QUERY", ["A? www.example.com"], {
+            time: "0.042s",
+            src: xt,
+            dst: In,
+            proto: "DNS",
+            info: "Standard query A www.example.com",
+            len: "86 B",
+            wire: Ks(50911, { id: 58884, q: Lt, edns: Jt }),
+          }),
+          $t(
+            "auth",
+            "dns",
+            "green",
+            "ANSWER",
+            ["www.example.com A 203.0.113.10", "TTL 3600 · flag AA"],
+            {
+              time: "0.062s",
+              src: In,
+              dst: xt,
+              proto: "DNS",
+              info: "Response A 203.0.113.10 (authoritative)",
+              len: "102 B",
+              wire: Us(50911, {
+                id: 58884,
+                response: !0,
+                aa: !0,
+                q: Lt,
+                edns: Jt,
+                an: [["www.example.com", "A", 3600, "203.0.113.10"]],
+              }),
+            },
+          ),
+        ],
+      },
+      {
+        title: "Answer & Cache",
+        desc: "The laptop gets its address",
+        detail:
+          "The resolver sends the answer back to the laptop and keeps a copy. For the next hour it can answer this name straight away, which is why the lookup in the HTTP lesson took only 24 ms. The laptop caches it too.",
+        facts: [
+          ["Answer", "A 203.0.113.10"],
+          ["Flags", "RD, RA (recursion available)"],
+          ["Cached by", "Resolver and laptop"],
+        ],
+        events: [
+          $t(
+            "dns",
+            "client",
+            "green",
+            "ANSWER",
+            ["A 203.0.113.10 · TTL 3600", "flags: RD RA"],
+            {
+              time: "0.082s",
+              src: xt,
+              dst: Qa,
+              proto: "DNS",
+              info: "Standard query response A 203.0.113.10",
+              len: "91 B",
+              wire: Us(54871, {
+                id: 39486,
+                response: !0,
+                rd: !0,
+                ra: !0,
+                q: Lt,
+                an: [["www.example.com", "A", 3600, "203.0.113.10"]],
+              }),
+            },
+          ),
+          {
+            type: "note",
+            at: "dns",
+            text: "CACHED · TTL 3600 S",
+            tone: "green",
+          },
+        ],
+      },
+    ],
+  },
+  Pt = "0x3903f326",
+  Bs = "0x7a1c22e5",
+  es = (e, t, s, a, n, o) => ({
+    time: N(e),
+    src: t,
+    dst: s,
+    proto: "DHCP",
+    info: a,
+    len: `${n} B`,
+    wire: o,
+  }),
+  gs = "alice-laptop",
+  Nn = [1, 3, 6, 15, 31, 33, 43, 44, 46, 47, 119, 121, 249, 252],
+  qn = (e) => ({
+    udp: { sport: 68, dport: 67, data: { dhcp: { op: 1, ...e } } },
+  }),
+  Mn = (e) => ({
+    udp: { sport: 67, dport: 68, data: { dhcp: { op: 2, ...e } } },
+  }),
+  Dn = [
+    [54, rt],
+    [51, 86400],
+    [58, 43200],
+    [59, 75600],
+    [1, "255.255.255.0"],
+    [28, "192.168.1.255"],
+    [3, rt],
+    [6, "8.8.8.8"],
+  ],
+  Si = {
+    id: "dhcp",
+    name: "DHCP",
+    title: "Getting an Address",
+    layer: 7,
+    nodes: ["client", "router"],
+    latency: { "client-router": 0.001 },
+    labels: { router: ["Router", "192.168.1.1 · DHCP server"] },
+    legend: [
+      ["amber", "From the laptop"],
+      ["violet", "From the DHCP server"],
+    ],
+    overview: {
+      full: "Dynamic Host Configuration Protocol",
+      description:
+        "DHCP hands a device everything it needs to use a network: an IP address, the subnet mask, the router to send traffic through and the DNS servers to ask. Addresses are leased for a set time and renewed while the device stays on the network.",
+      facts: [
+        ["Layer", "Application (Layer 7)"],
+        ["Ports", "UDP 67 (server), 68 (client)"],
+        ["Hands out", "IP, mask, gateway, DNS"],
+        ["Exchange", "Discover, Offer, Request, Ack"],
+        ["Lease", "Renewed at half its time"],
+        ["Defined In", "RFC 2131, RFC 2132"],
+      ],
+    },
+    outro: {
+      title: "On the network",
+      desc: "Leased, and kept up to date",
+      text: "Four messages took the laptop from no address to a working configuration, and halfway through the 24-hour lease it renewed it with a direct request to the router. Press REPLAY to watch it again.",
+      facts: [
+        ["Messages", "4 to join, 2 per renewal"],
+        ["Address", "192.168.1.10/24"],
+        ["Lease", "24 h, renewed at 12 h"],
+        ["Ports", "UDP 68 → 67"],
+      ],
+    },
+    start: { nodes: ["client"], frame: "client" },
+    steps: [
+      {
+        title: "No Address Yet",
+        desc: "The laptop joins the network",
+        detail:
+          "The laptop has just connected. It has a MAC address built in, but no IP address, no gateway and no DNS server, so it can’t talk to anything beyond its own network yet. It asks for them with DHCP.",
+        facts: [
+          ["IP address", "None (uses 0.0.0.0)"],
+          ["MAC address", "00:00:5e:00:53:10"],
+          ["Needs", "IP, mask, gateway, DNS"],
+        ],
+        events: [
+          {
+            type: "note",
+            at: "client",
+            text: "NO IP ADDRESS YET",
+            tone: "amber",
+          },
+          { type: "show", nodes: ["router"], frame: "local" },
+        ],
+      },
+      {
+        title: "Discover",
+        desc: "Shout to the whole network",
+        detail:
+          "Without an address of its own, the laptop sends from 0.0.0.0 to the broadcast address 255.255.255.255, so every device on the local network receives it. Only DHCP servers answer.",
+        facts: [
+          ["From", "0.0.0.0, UDP port 68"],
+          ["To", "255.255.255.255, port 67"],
+          ["Carries", "MAC, transaction ID"],
+        ],
+        events: [
+          u(
+            "client",
+            "router",
+            "amber",
+            "DISCOVER",
+            ["0.0.0.0 → 255.255.255.255", "any DHCP server out there?"],
+            es(
+              0,
+              "0.0.0.0",
+              "255.255.255.255",
+              `DHCP Discover - Transaction ID ${Pt}`,
+              342,
+              qn({
+                xid: +Pt,
+                options: [
+                  [53, 1],
+                  [61, "mac"],
+                  [12, gs],
+                  [60, "MSFT 5.0"],
+                  [55, Nn],
+                ],
+              }),
+            ),
+          ),
+        ],
+      },
+      {
+        title: "Offer",
+        desc: "The router proposes an address",
+        detail:
+          "The router’s DHCP server picks a free address and offers it with the rest of the settings. The laptop can’t use an IP address yet, so the offer goes straight to its MAC address (some clients ask for a broadcast instead).",
+        facts: [
+          ["Offered", "192.168.1.10/24"],
+          ["Gateway, DNS", "192.168.1.1, 8.8.8.8"],
+          ["Lease", "86,400 s (24 h)"],
+        ],
+        events: [
+          u(
+            "router",
+            "client",
+            "violet",
+            "OFFER",
+            ["offer: 192.168.1.10/24", "gateway, DNS, lease 24 h"],
+            es(
+              0.004,
+              rt,
+              f,
+              `DHCP Offer - Transaction ID ${Pt}`,
+              342,
+              Mn({ xid: +Pt, yiaddr: f, options: [[53, 2], ...Dn] }),
+            ),
+          ),
+        ],
+      },
+      {
+        title: "Request",
+        desc: "Accept, out loud",
+        detail:
+          "The laptop asks for the offered address, naming the server it chose. It still broadcasts, so any other DHCP server that made an offer learns it wasn’t picked and can release its address.",
+        facts: [
+          ["Requests", "192.168.1.10"],
+          ["Chosen server", "192.168.1.1"],
+          ["Sent to", "255.255.255.255"],
+        ],
+        events: [
+          u(
+            "client",
+            "router",
+            "amber",
+            "REQUEST",
+            ["I’ll take 192.168.1.10", "from server 192.168.1.1"],
+            es(
+              0.006,
+              "0.0.0.0",
+              "255.255.255.255",
+              `DHCP Request - Transaction ID ${Pt}`,
+              364,
+              qn({
+                xid: +Pt,
+                options: [
+                  [53, 3],
+                  [61, "mac"],
+                  [50, f],
+                  [54, rt],
+                  [12, gs],
+                  [81, gs],
+                  [60, "MSFT 5.0"],
+                  [55, Nn],
+                ],
+              }),
+            ),
+          ),
+        ],
+      },
+      {
+        title: "Acknowledge",
+        desc: "The address is the laptop’s",
+        detail:
+          "The server confirms, and the laptop configures its address, mask, gateway and DNS server. Many systems first check with ARP that no other device is already using the address.",
+        facts: [
+          ["Address", "192.168.1.10/24"],
+          ["Gateway", "192.168.1.1"],
+          ["DNS server", "8.8.8.8"],
+        ],
+        events: [
+          u(
+            "router",
+            "client",
+            "violet",
+            "ACK",
+            ["192.168.1.10 is yours", "for 24 hours"],
+            es(
+              0.009,
+              rt,
+              f,
+              `DHCP ACK - Transaction ID ${Pt}`,
+              342,
+              Mn({ xid: +Pt, yiaddr: f, options: [[53, 5], ...Dn] }),
+            ),
+          ),
+          {
+            type: "note",
+            at: "client",
+            text: "192.168.1.10/24 · 24 H LEASE",
+            tone: "green",
+          },
+        ],
+      },
+      {
+        title: "Renew",
+        desc: "Halfway through the lease",
+        detail:
+          "Twelve hours later, half the lease has passed. The laptop now has an address, so it asks the router directly to extend the lease, and the router resets it to 24 hours. If the router didn’t answer, it would broadcast at 87.5%.",
+        facts: [
+          ["When", "50% of lease (T1 = 12 h)"],
+          ["Sent to", "The router (unicast)"],
+          ["If unanswered", "Broadcast at 87.5% (T2)"],
+        ],
+        events: [
+          u(
+            "client",
+            "router",
+            "amber",
+            "REQUEST",
+            ["renew 192.168.1.10", "sent straight to 192.168.1.1"],
+            es(
+              43200,
+              f,
+              rt,
+              `DHCP Request - Transaction ID ${Bs}`,
+              352,
+              qn({
+                xid: +Bs,
+                ciaddr: f,
+                options: [
+                  [53, 3],
+                  [61, "mac"],
+                  [12, gs],
+                  [81, gs],
+                  [60, "MSFT 5.0"],
+                  [55, Nn],
+                ],
+              }),
+            ),
+          ),
+          u(
+            "router",
+            "client",
+            "violet",
+            "ACK",
+            ["lease renewed", "another 24 hours"],
+            es(
+              43200.003,
+              rt,
+              f,
+              `DHCP ACK - Transaction ID ${Bs}`,
+              342,
+              Mn({ xid: +Bs, ciaddr: f, yiaddr: f, options: [[53, 5], ...Dn] }),
+            ),
+          ),
+        ],
+      },
+    ],
+  },
+  Ct = "203.0.113.10",
+  bi = "198.51.100.1",
+  dt = (e, t, s, a, n, o) => ({
+    time: N(e),
+    src: t,
+    dst: s,
+    proto: "ICMP",
+    info: a,
+    len: n,
+    wire: o,
+  }),
+  vi = "abcdefghijklmnopqrstuvwabcdefghi",
+  ts = (e, t, s) => ({
+    icmp: { type: e, code: 0, id: 1, seq: t, data: vi },
+    ...(s ? { ttl: s } : {}),
+  }),
+  Hn = (e, t, s, a = "all") => ({
+    icmp: { type: e, code: t, quote: -1, ttl: s, quoteBytes: a },
+  }),
+  D = "203.0.113.25",
+  Gs = "8.8.8.8",
+  fe = "198.51.100.25",
+  Ei = $e(f, 52900, D, 465),
+  ki = $e(D, 41522, fe, 25);
+function ae(e, t, s, a, n, o = !0) {
+  const r = t === fe || s === fe,
+    i = r ? ki : Ei,
+    l = n.message ? n.message + Ai : ye(...n),
+    c = n.message ? `${n.what}, then a line holding only “.”` : "SMTP",
+    h = o ? (n.message ? li(l, c) : da(n, c)) : { text: n, name: "SMTP" };
+  return {
+    time: N(e),
+    src: t,
+    dst: s,
+    proto: o ? "SMTP (TLS)" : "SMTP",
+    info: a,
+    len: `${(o ? ia(l) : be(l)) + (r ? la : 0)} B`,
+    wire: O(i, t, "PA", h),
+  };
+}
+const Ys = { sport: 44210, edns: { size: 1232 } },
+  Ws = (e, t, s, a, n, o) => ({
+    time: N(e),
+    src: t,
+    dst: s,
+    proto: "DNS",
+    info: a,
+    len: `${n} B`,
+    wire: {
+      udp:
+        t === D
+          ? {
+              sport: Ys.sport,
+              dport: 53,
+              data: { dns: { rd: !0, edns: Ys.edns, ...o } },
+            }
+          : {
+              sport: 53,
+              dport: Ys.sport,
+              data: {
+                dns: {
+                  response: !0,
+                  rd: !0,
+                  ra: !0,
+                  edns: Ys.edns,
+                  exampleTtl: !0,
+                  ...o,
+                },
+              },
+            },
+    },
+  }),
+  ke = { locked: !0 },
+  _n = 316,
+  ks = 1316,
+  Ai = ye("."),
+  xi = ["220 smtp.example.com ESMTP Postfix"],
+  $i = ["EHLO alice-laptop"],
+  Li = [
+    "250-smtp.example.com",
+    "250-PIPELINING",
+    "250-SIZE 52428800",
+    "250-AUTH PLAIN LOGIN",
+    "250-ENHANCEDSTATUSCODES",
+    "250-8BITMIME",
+    "250 SMTPUTF8",
+  ],
+  Pi = ["AUTH PLAIN AGFsaWNlAHNlY3JldA=="],
+  Ci = ["235 2.7.0 Authentication successful"],
+  Ri = ["MAIL FROM:<alice@example.com>", "RCPT TO:<bob@example.org>", "DATA"],
+  Ja = ["250 2.1.0 Ok", "250 2.1.5 Ok", "354 End data with <CR><LF>.<CR><LF>"],
+  Ii = ["250 2.0.0 Ok: queued as 4A1F2C3D9E"],
+  Oi = ["220 mx.example.org ESMTP Postfix"],
+  eo = ["EHLO smtp.example.com"],
+  zo = [
+    "250-mx.example.org",
+    "250-PIPELINING",
+    "250-SIZE 52428800",
+    "250-STARTTLS",
+    "250-ENHANCEDSTATUSCODES",
+    "250-8BITMIME",
+    "250 SMTPUTF8",
+  ],
+  Ni = ["STARTTLS"],
+  qi = ["220 2.0.0 Ready to start TLS"],
+  Mi = zo.filter((e) => e !== "250-STARTTLS"),
+  Di = [
+    `MAIL FROM:<alice@example.com> SIZE=${ks}`,
+    "RCPT TO:<bob@example.org>",
+    "DATA",
+  ],
+  Hi = ["250 2.0.0 Ok: queued as 7B3E9F01A2"],
+  _i = {
+    id: "smtp",
+    name: "SMTP",
+    title: "Sending Email",
+    layer: 7,
+    nodes: ["client", "router", "internet", "dns", "web", "mx"],
+    latency: { "client-web": 0.015, "web-dns": 0.005, "web-mx": 0.02 },
+    lifelines: ["client", "web", "dns", "mx"],
+    labels: { web: ["smtp.example.com", D], mx: ["mx.example.org", fe] },
+    legend: [
+      ["green", "TCP"],
+      ["teal", "TLS handshake"],
+      ["amber", "SMTP command"],
+      ["violet", "SMTP reply"],
+      ["blue", "DNS"],
+    ],
+    overview: {
+      full: "Simple Mail Transfer Protocol",
+      description:
+        "SMTP moves email: from your mail app to your provider’s server, and from that server to the recipient’s. It is a conversation of short text commands, each answered with a three-digit reply code. Reading mail is a different job, done with IMAP or POP3.",
+      facts: [
+        ["Layer", "Application (Layer 7)"],
+        ["Ports", "465/587 submit, 25 relay"],
+        ["Transport", "TCP, usually with TLS"],
+        ["Commands", "EHLO, MAIL, RCPT, DATA"],
+        ["Replies", "2xx ok, 3xx go on, 4/5xx error"],
+        ["Defined In", "RFC 5321, RFC 6409"],
+      ],
+    },
+    outro: {
+      title: "Mail delivered",
+      desc: "Two hops, one message",
+      text: "Alice’s app handed the message to her provider over an encrypted, logged-in connection. The provider found Bob’s mail server in DNS and relayed it there, upgrading that link to TLS. It now waits in Bob’s mailbox until he reads it with IMAP or POP3.",
+      facts: [
+        ["Hops", "Laptop → provider → Bob’s"],
+        ["Submission", "Port 465, TLS, login"],
+        ["Relay", "Port 25, STARTTLS"],
+        ["Checks at Bob’s", "SPF, DKIM, DMARC"],
+      ],
+    },
+    start: { nodes: ["client"], frame: "client" },
+    steps: [
+      {
+        title: "Connect Securely",
+        desc: "Port 465, TLS from the start",
+        detail:
+          "Alice presses Send. Her mail app connects to her provider’s submission server, smtp.example.com, on port 465. On this port TLS starts immediately, so the whole SMTP conversation, including her password, is encrypted.",
+        facts: [
+          ["Server", "smtp.example.com:465"],
+          ["Security", "TLS from the start"],
+          ["Then", "SMTP inside TLS"],
+        ],
+        events: [
+          { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+          ...Je({ dst: D, sport: 52900, dport: 465, t: [0, 0.015, 0.03] }),
+          ...rn({
+            dst: D,
+            sni: "smtp.example.com",
+            sport: 52900,
+            dport: 465,
+            t: [0.03, 0.045, 0.062],
+          }),
+        ],
+      },
+      {
+        title: "Greeting & Login",
+        desc: "EHLO, then AUTH",
+        detail:
+          "The server greets with code 220. The app says EHLO and the server lists what it supports, including AUTH. The app logs in with AUTH PLAIN (user name and password, base64-encoded) and gets 235: authenticated.",
+        facts: [
+          ["Greeting", "220 … ESMTP"],
+          ["Capabilities", "AUTH, PIPELINING, SIZE …"],
+          ["Login result", "235 2.7.0"],
+        ],
+        events: [
+          u(
+            "web",
+            "client",
+            "violet",
+            "220",
+            ["220 smtp.example.com ESMTP"],
+            ae(0.077, D, f, "220 smtp.example.com ESMTP Postfix", xi),
+            ke,
+          ),
+          u(
+            "client",
+            "web",
+            "amber",
+            "EHLO",
+            ["EHLO alice-laptop"],
+            ae(0.092, f, D, "EHLO alice-laptop", $i),
+            ke,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "250",
+            ["250-PIPELINING", "250-AUTH PLAIN LOGIN …"],
+            ae(0.107, D, f, "250 capabilities (PIPELINING, SIZE, AUTH …)", Li),
+            ke,
+          ),
+          u(
+            "client",
+            "web",
+            "amber",
+            "AUTH",
+            ["AUTH PLAIN AGFsaWNlAHNl…", "user and password, base64"],
+            ae(0.122, f, D, "AUTH PLAIN (credentials)", Pi),
+            ke,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "235",
+            ["235 2.7.0 Authentication", "successful"],
+            ae(0.137, D, f, "235 2.7.0 Authentication successful", Ci),
+            ke,
+          ),
+        ],
+      },
+      {
+        title: "Send the Message",
+        desc: "Envelope, then content",
+        detail:
+          "MAIL FROM and RCPT TO are the envelope: sender and recipient. PIPELINING lets all three commands share one packet. After 354 comes the message, ended by a line holding just a dot.",
+        facts: [
+          ["Envelope", "alice@ → bob@example.org"],
+          ["Content ends", "A line with only “.”"],
+          ["Result", "250 Ok: queued"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "MAIL · RCPT · DATA",
+            [
+              "MAIL FROM:<alice@example.com>",
+              "RCPT TO:<bob@example.org>",
+              "DATA",
+            ],
+            ae(0.152, f, D, "MAIL FROM, RCPT TO, DATA (pipelined)", Ri),
+            ke,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "250 · 250 · 354",
+            [
+              "250 2.1.0 Ok · 250 2.1.5 Ok",
+              "354 End data with",
+              "<CR><LF>.<CR><LF>",
+            ],
+            ae(
+              0.167,
+              D,
+              f,
+              "250 Ok, 250 Ok, 354 End data with <CR><LF>.<CR><LF>",
+              Ja,
+            ),
+            ke,
+          ),
+          u(
+            "client",
+            "web",
+            "amber",
+            "MESSAGE",
+            ["Subject: Lunch on Friday?", "… message …", "."],
+            ae(0.182, f, D, `Message (${_n} bytes), then “.”`, {
+              message: _n,
+              what: `Alice’s message (${_n} bytes)`,
+            }),
+            ke,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "250 QUEUED",
+            ["250 2.0.0 Ok: queued", "as 4A1F2C3D9E"],
+            ae(0.2, D, f, "250 2.0.0 Ok: queued as 4A1F2C3D9E", Ii),
+            ke,
+          ),
+        ],
+      },
+      {
+        title: "Find Bob’s Server",
+        desc: "An MX lookup in DNS",
+        detail:
+          "Alice’s provider now has to deliver to example.org. It asks DNS for that domain’s MX record, which names the server that accepts its mail, then looks up that server’s address.",
+        facts: [
+          ["MX record", "10 mx.example.org"],
+          ["Address", "A 198.51.100.25"],
+          ["Asked by", "Alice’s provider"],
+        ],
+        events: [
+          { type: "show", nodes: ["dns"], frame: "mailhost" },
+          u(
+            "web",
+            "dns",
+            "blue",
+            "DNS QUERY",
+            ["MX? example.org"],
+            Ws(0.205, D, Gs, "Standard query MX example.org", 82, {
+              id: 28165,
+              q: ["example.org", "MX"],
+            }),
+          ),
+          u(
+            "dns",
+            "web",
+            "blue",
+            "DNS REPLY",
+            ["example.org MX 10", "mx.example.org"],
+            Ws(
+              0.21,
+              Gs,
+              D,
+              "Standard query response MX 10 mx.example.org",
+              101,
+              {
+                id: 28165,
+                q: ["example.org", "MX"],
+                an: [["example.org", "MX", 3600, [10, "mx.example.org"]]],
+              },
+            ),
+          ),
+          u(
+            "web",
+            "dns",
+            "blue",
+            "DNS QUERY",
+            ["A? mx.example.org"],
+            Ws(0.215, D, Gs, "Standard query A mx.example.org", 85, {
+              id: 8146,
+              q: ["mx.example.org", "A"],
+            }),
+          ),
+          u(
+            "dns",
+            "web",
+            "blue",
+            "DNS REPLY",
+            ["mx.example.org", "A 198.51.100.25"],
+            Ws(0.22, Gs, D, "Standard query response A 198.51.100.25", 101, {
+              id: 8146,
+              q: ["mx.example.org", "A"],
+              an: [["mx.example.org", "A", 3600, "198.51.100.25"]],
+            }),
+          ),
+        ],
+      },
+      {
+        title: "Server to Server",
+        desc: "Port 25, upgraded with STARTTLS",
+        detail:
+          "The provider connects to mx.example.org on port 25. This conversation starts in plain text: the greeting and EHLO reply advertise STARTTLS, the provider asks for it, gets 220 and both sides switch to TLS.",
+        facts: [
+          ["Server", "mx.example.org:25"],
+          ["Starts as", "Plain text"],
+          ["Upgrade", "STARTTLS → 220 → TLS"],
+        ],
+        events: [
+          { type: "show", nodes: ["mx"], frame: "full" },
+          ...Je({
+            from: "web",
+            to: "mx",
+            src: D,
+            dst: fe,
+            sport: 41522,
+            dport: 25,
+            t: [0.225, 0.245, 0.265],
+            linux: !0,
+          }),
+          u(
+            "mx",
+            "web",
+            "violet",
+            "220",
+            ["220 mx.example.org ESMTP"],
+            ae(0.285, fe, D, "220 mx.example.org ESMTP Postfix", Oi, !1),
+          ),
+          u(
+            "web",
+            "mx",
+            "amber",
+            "EHLO",
+            ["EHLO smtp.example.com"],
+            ae(0.305, D, fe, "EHLO smtp.example.com", eo, !1),
+          ),
+          u(
+            "mx",
+            "web",
+            "violet",
+            "250",
+            ["250-PIPELINING", "250-STARTTLS …"],
+            ae(
+              0.325,
+              fe,
+              D,
+              "250 capabilities (PIPELINING, STARTTLS …)",
+              zo,
+              !1,
+            ),
+          ),
+          u(
+            "web",
+            "mx",
+            "amber",
+            "STARTTLS",
+            ["STARTTLS"],
+            ae(0.345, D, fe, "STARTTLS", Ni, !1),
+          ),
+          u(
+            "mx",
+            "web",
+            "violet",
+            "220",
+            ["220 2.0.0 Ready to", "start TLS"],
+            ae(0.365, fe, D, "220 2.0.0 Ready to start TLS", qi, !1),
+          ),
+          ...rn({
+            from: "web",
+            to: "mx",
+            src: D,
+            dst: fe,
+            sni: "mx.example.org",
+            sport: 41522,
+            dport: 25,
+            t: [0.385, 0.405, 0.427],
+            linux: !0,
+          }),
+        ],
+      },
+      {
+        title: "Deliver",
+        desc: "The same transaction again",
+        detail:
+          "With TLS on, the provider repeats EHLO, then the envelope and the message, now with a DKIM signature and a Received header added. Bob’s server checks SPF, DKIM and DMARC and accepts it.",
+        facts: [
+          ["Login needed", "No (server to server)"],
+          ["Message", "1,316 bytes (signed)"],
+          ["Result", "250 Ok: queued"],
+        ],
+        events: [
+          u(
+            "web",
+            "mx",
+            "amber",
+            "EHLO",
+            ["EHLO smtp.example.com"],
+            ae(0.427, D, fe, "EHLO smtp.example.com", eo),
+            ke,
+          ),
+          u(
+            "mx",
+            "web",
+            "violet",
+            "250",
+            ["250-PIPELINING", "250-SIZE …"],
+            ae(0.447, fe, D, "250 capabilities (PIPELINING, SIZE …)", Mi),
+            ke,
+          ),
+          u(
+            "web",
+            "mx",
+            "amber",
+            "MAIL · RCPT · DATA",
+            [
+              "MAIL FROM:<alice@example.com>",
+              "RCPT TO:<bob@example.org>",
+              "DATA",
+            ],
+            ae(0.467, D, fe, `MAIL FROM (SIZE=${ks}), RCPT TO, DATA`, Di),
+            ke,
+          ),
+          u(
+            "mx",
+            "web",
+            "violet",
+            "250 · 250 · 354",
+            [
+              "250 2.1.0 Ok · 250 2.1.5 Ok",
+              "354 End data with",
+              "<CR><LF>.<CR><LF>",
+            ],
+            ae(
+              0.487,
+              fe,
+              D,
+              "250 Ok, 250 Ok, 354 End data with <CR><LF>.<CR><LF>",
+              Ja,
+            ),
+            ke,
+          ),
+          u(
+            "web",
+            "mx",
+            "amber",
+            "MESSAGE",
+            ["DKIM-Signature: …", "… message …", "."],
+            ae(
+              0.507,
+              D,
+              fe,
+              `Message (${ks.toLocaleString("en-US")} bytes), then “.”`,
+              {
+                message: ks,
+                what: `The signed message (${ks.toLocaleString("en-US")} bytes)`,
+              },
+            ),
+            ke,
+          ),
+          u(
+            "mx",
+            "web",
+            "violet",
+            "250 QUEUED",
+            ["250 2.0.0 Ok: queued", "as 7B3E9F01A2"],
+            ae(0.538, fe, D, "250 2.0.0 Ok: queued as 7B3E9F01A2", Hi),
+            ke,
+          ),
+          { type: "note", at: "mx", text: "IN BOB’S MAILBOX", tone: "green" },
+        ],
+      },
+    ],
+  },
+  oe = "198.51.100.110",
+  Zo = $e(f, 53010, oe, 995),
+  Le = (...e) => e,
+  Pe = (e, t, s, a, n) => ({
+    time: N(e),
+    src: t,
+    dst: s,
+    proto: "POP (TLS)",
+    info: a,
+    len: `${ia(ye(...n))} B`,
+    wire: O(Zo, t, "PA", da(n, "POP3")),
+  }),
+  Ae = { locked: !0 },
+  Ls = ye("+OK 1904 octets") + 1904 + ye(".") + _t,
+  Fi = Ls + Ze(Ls) * (Me + De + He),
+  Ki = {
+    id: "pop3",
+    name: "POP3",
+    title: "Downloading Email",
+    layer: 7,
+    nodes: ["client", "router", "internet", "web"],
+    latency: { "client-web": 0.015 },
+    labels: { web: ["pop.example.org", oe] },
+    legend: [
+      ["green", "TCP"],
+      ["teal", "TLS handshake"],
+      ["amber", "POP3 command"],
+      ["violet", "POP3 reply"],
+      [null, "Data ACKs not shown"],
+    ],
+    overview: {
+      full: "Post Office Protocol, version 3",
+      description:
+        "POP3 lets a mail app download messages from a mailbox on a server. It was designed for one device that fetches mail and then removes it from the server. Commands are short words, and every reply starts with +OK or -ERR.",
+      facts: [
+        ["Layer", "Application (Layer 7)"],
+        ["Ports", "995 (TLS), 110 (STLS)"],
+        ["Transport", "TCP"],
+        ["Model", "Download, then delete"],
+        ["Replies", "+OK or -ERR"],
+        ["Defined In", "RFC 1939"],
+      ],
+    },
+    outro: {
+      title: "Mail downloaded",
+      desc: "And gone from the server",
+      text: "Bob’s app logged in, saw two messages, downloaded the first and deleted it, which the server carried out at QUIT. That message now lives only on this laptop, which is why POP3 suits one device and IMAP suits several.",
+      facts: [
+        ["Messages", "2 waiting, 1 downloaded"],
+        ["Deleted", "At QUIT (UPDATE state)"],
+        ["Port", "995, TLS from the start"],
+        ["Best for", "A single device"],
+      ],
+    },
+    start: { nodes: ["client"], frame: "client" },
+    steps: [
+      {
+        title: "Connect Securely",
+        desc: "Port 995, TLS from the start",
+        detail:
+          "Bob’s mail app connects to pop.example.org on port 995, where TLS starts right away. Inside it, the server greets with +OK. (On port 110 the session starts in plain text and is upgraded with the STLS command.)",
+        facts: [
+          ["Server", "pop.example.org:995"],
+          ["Security", "TLS from the start"],
+          ["Greeting", "+OK Dovecot ready."],
+        ],
+        events: [
+          { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+          ...Je({ dst: oe, sport: 53010, dport: 995, t: [0, 0.015, 0.03] }),
+          ...rn({
+            dst: oe,
+            sni: "pop.example.org",
+            sport: 53010,
+            dport: 995,
+            t: [0.03, 0.045, 0.062],
+          }),
+          u(
+            "web",
+            "client",
+            "violet",
+            "+OK",
+            ["+OK Dovecot ready."],
+            Pe(0.077, oe, f, "+OK Dovecot ready.", Le("+OK Dovecot ready.")),
+            Ae,
+          ),
+        ],
+      },
+      {
+        title: "Log In",
+        desc: "USER, then PASS",
+        detail:
+          "The app sends the user name with USER and the password with PASS. Each command gets its own +OK. Because the session is inside TLS, the password isn’t readable on the way.",
+        facts: [
+          ["Commands", "USER bob, PASS ••••"],
+          ["Replies", "+OK, +OK Logged in."],
+          ["Protected by", "TLS"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "USER",
+            ["USER bob"],
+            Pe(0.092, f, oe, "USER bob", Le("USER bob")),
+            Ae,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "+OK",
+            ["+OK"],
+            Pe(0.107, oe, f, "+OK", Le("+OK")),
+            Ae,
+          ),
+          u(
+            "client",
+            "web",
+            "amber",
+            "PASS",
+            ["PASS ••••••"],
+            Pe(0.122, f, oe, "PASS (password)", Le("PASS secret")),
+            Ae,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "+OK",
+            ["+OK Logged in."],
+            Pe(0.137, oe, f, "+OK Logged in.", Le("+OK Logged in.")),
+            Ae,
+          ),
+        ],
+      },
+      {
+        title: "Check the Mailbox",
+        desc: "STAT and LIST",
+        detail:
+          "STAT returns the number of messages and their total size: 2 messages, 5120 bytes. LIST gives each message’s number and size, ending with a line holding just a dot.",
+        facts: [
+          ["STAT", "+OK 2 5120"],
+          ["Message 1", "1904 bytes"],
+          ["Message 2", "3216 bytes"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "STAT",
+            ["STAT"],
+            Pe(0.152, f, oe, "STAT", Le("STAT")),
+            Ae,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "+OK",
+            ["+OK 2 5120"],
+            Pe(0.167, oe, f, "+OK 2 5120", Le("+OK 2 5120")),
+            Ae,
+          ),
+          u(
+            "client",
+            "web",
+            "amber",
+            "LIST",
+            ["LIST"],
+            Pe(0.182, f, oe, "LIST", Le("LIST")),
+            Ae,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "+OK",
+            ["+OK 2 messages:", "1 1904 · 2 3216 · ."],
+            Pe(
+              0.197,
+              oe,
+              f,
+              "+OK 2 messages: 1 1904, 2 3216",
+              Le("+OK 2 messages:", "1 1904", "2 3216", "."),
+            ),
+            Ae,
+          ),
+        ],
+      },
+      {
+        title: "Download",
+        desc: "RETR 1",
+        detail:
+          "RETR 1 asks for the first message. The server answers +OK with its size, then the message and a closing dot: 1904 bytes plus the reply line, two TCP segments.",
+        facts: [
+          ["Command", "RETR 1"],
+          ["Reply", "+OK 1904 octets"],
+          ["Sent as", "2 TCP segments"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "RETR 1",
+            ["RETR 1"],
+            Pe(0.212, f, oe, "RETR 1", Le("RETR 1")),
+            Ae,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "MESSAGE",
+            ["+OK 1904 octets", "… message …", "."],
+            {
+              time: N(0.227),
+              src: oe,
+              dst: f,
+              proto: "POP (TLS)",
+              info: `+OK 1904 octets, message, “.” (${Ze(Ls)} segments)`,
+              len: it(Fi, Ze(Ls)),
+              wire: O(Zo, oe, "PA", {
+                tls: [
+                  {
+                    type: "appdata",
+                    length: Ls - 5,
+                    inner: {
+                      what: "+OK 1904 octets, the 1,904-byte message, then a line holding only “.”",
+                    },
+                  },
+                ],
+              }),
+            },
+            Ae,
+          ),
+        ],
+      },
+      {
+        title: "Delete & Quit",
+        desc: "Deleted only at QUIT",
+        detail:
+          "DELE 1 only marks the message. The server removes it when the app says QUIT: if the connection dropped before that, nothing would be deleted. Many apps offer “leave a copy on the server”, which skips DELE.",
+        facts: [
+          ["DELE 1", "Marks message 1"],
+          ["Removed", "At QUIT"],
+          ["Option", "Leave a copy on server"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "DELE 1",
+            ["DELE 1"],
+            Pe(0.242, f, oe, "DELE 1", Le("DELE 1")),
+            Ae,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "+OK",
+            ["+OK Marked to be deleted."],
+            Pe(
+              0.257,
+              oe,
+              f,
+              "+OK Marked to be deleted.",
+              Le("+OK Marked to be deleted."),
+            ),
+            Ae,
+          ),
+          u(
+            "client",
+            "web",
+            "amber",
+            "QUIT",
+            ["QUIT"],
+            Pe(0.272, f, oe, "QUIT", Le("QUIT")),
+            Ae,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "+OK",
+            ["+OK Logging out,", "messages deleted."],
+            Pe(
+              0.287,
+              oe,
+              f,
+              "+OK Logging out, messages deleted.",
+              Le("+OK Logging out, messages deleted."),
+            ),
+            Ae,
+          ),
+          { type: "note", at: "web", text: "MESSAGE 1 DELETED", tone: "amber" },
+        ],
+      },
+    ],
+  },
+  ue = "198.51.100.143",
+  Jo = $e(f, 53140, ue, 993),
+  ze = (...e) => e,
+  Ve = (e, t, s, a, n) => ({
+    time: N(e),
+    src: t,
+    dst: s,
+    proto: "IMAP (TLS)",
+    info: a,
+    len: `${ia(ye(...n))} B`,
+    wire: O(Jo, t, "PA", da(n, "IMAP")),
+  }),
+  Ue = { locked: !0 },
+  Ui = ze("* OK [CAPABILITY IMAP4rev1 IDLE LITERAL+ AUTH=PLAIN] Service ready"),
+  Bi = ze("a1 LOGIN bob secret"),
+  Gi = ze("a1 OK LOGIN completed"),
+  Yi = ze("a2 SELECT INBOX"),
+  Wi = ze(
+    "* FLAGS (\\Answered \\Flagged \\Deleted \\Seen \\Draft)",
+    "* OK [PERMANENTFLAGS (\\Answered \\Flagged \\Deleted \\Seen \\Draft \\*)] Flags permitted",
+    "* 2 EXISTS",
+    "* 0 RECENT",
+    "* OK [UNSEEN 2] Message 2 is first unseen",
+    "* OK [UIDVALIDITY 1700000000] UIDs valid",
+    "* OK [UIDNEXT 3] Predicted next UID",
+    "a2 OK [READ-WRITE] SELECT completed",
+  ),
+  ji = ze("a3 FETCH 2 BODY[]"),
+  Ps =
+    ye("* 2 FETCH (FLAGS (\\Seen) BODY[] {3216}") +
+    3216 +
+    ye(")", "a3 OK FETCH completed") +
+    _t,
+  Vi = Ps + Ze(Ps) * (Me + De + He),
+  Xi = {
+    id: "imap",
+    name: "IMAP",
+    title: "Mail That Stays in Sync",
+    layer: 7,
+    nodes: ["client", "router", "internet", "web"],
+    latency: { "client-web": 0.015 },
+    labels: { web: ["imap.example.org", ue] },
+    legend: [
+      ["green", "TCP"],
+      ["teal", "TLS handshake"],
+      ["amber", "IMAP command"],
+      ["violet", "IMAP response"],
+      [null, "Data ACKs not shown"],
+    ],
+    overview: {
+      full: "Internet Message Access Protocol",
+      description:
+        "IMAP lets mail apps work with a mailbox that stays on the server. Folders, read and flagged marks and deletions are kept there, so a phone, a laptop and webmail all see the same mailbox. The server can also tell an app about new mail as it arrives.",
+      facts: [
+        ["Layer", "Application (Layer 7)"],
+        ["Ports", "993 (TLS), 143 (STARTTLS)"],
+        ["Transport", "TCP"],
+        ["Model", "Mail stays on the server"],
+        ["Syncs", "Folders and flags"],
+        ["Defined In", "RFC 9051, RFC 3501"],
+      ],
+    },
+    outro: {
+      title: "Mailbox in sync",
+      desc: "Read once, read everywhere",
+      text: "Bob’s app opened his inbox, read a message, which marked it \\Seen on the server for all his devices, and then waited with IDLE until the server announced new mail. Nothing was deleted: the server still holds everything.",
+      facts: [
+        ["Messages", "2, then 3 (new mail)"],
+        ["Read mark", "\\Seen, stored on server"],
+        ["New mail", "Pushed during IDLE"],
+        ["Port", "993, TLS from the start"],
+      ],
+    },
+    start: { nodes: ["client"], frame: "client" },
+    steps: [
+      {
+        title: "Connect Securely",
+        desc: "Port 993, TLS from the start",
+        detail:
+          "Bob’s app connects to imap.example.org on port 993, where TLS starts right away. The server greets with an untagged “* OK” line that also lists its capabilities, such as IDLE.",
+        facts: [
+          ["Server", "imap.example.org:993"],
+          ["Security", "TLS from the start"],
+          ["Greeting", "* OK [CAPABILITY …]"],
+        ],
+        events: [
+          { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+          ...Je({ dst: ue, sport: 53140, dport: 993, t: [0, 0.015, 0.03] }),
+          ...rn({
+            dst: ue,
+            sni: "imap.example.org",
+            sport: 53140,
+            dport: 993,
+            t: [0.03, 0.045, 0.062],
+          }),
+          u(
+            "web",
+            "client",
+            "violet",
+            "* OK",
+            ["* OK [CAPABILITY IMAP4rev1", "IDLE …] Service ready"],
+            Ve(0.077, ue, f, "* OK [CAPABILITY …] Service ready", Ui),
+            Ue,
+          ),
+        ],
+      },
+      {
+        title: "Log In",
+        desc: "Commands carry tags",
+        detail:
+          "Every command starts with a tag the app chooses, like a1, and the server ends its answer with the same tag. That way several commands can be in flight and each reply is matched up. Lines starting with * are untagged data.",
+        facts: [
+          ["Command", "a1 LOGIN bob ••••"],
+          ["Reply", "a1 OK LOGIN completed"],
+          ["Tags", "Match replies to commands"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "a1 LOGIN",
+            ["a1 LOGIN bob ••••••"],
+            Ve(0.092, f, ue, "a1 LOGIN (user and password)", Bi),
+            Ue,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "a1 OK",
+            ["a1 OK LOGIN completed"],
+            Ve(0.107, ue, f, "a1 OK LOGIN completed", Gi),
+            Ue,
+          ),
+        ],
+      },
+      {
+        title: "Open the Inbox",
+        desc: "SELECT a folder",
+        detail:
+          "SELECT INBOX opens the folder. The server reports the message count, the flags it supports and the first unread message, then confirms the folder is open read-write.",
+        facts: [
+          ["Messages", "* 2 EXISTS"],
+          ["First unread", "Message 2"],
+          ["Access", "[READ-WRITE]"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "a2 SELECT",
+            ["a2 SELECT INBOX"],
+            Ve(0.122, f, ue, "a2 SELECT INBOX", Yi),
+            Ue,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "a2 OK",
+            ["* 2 EXISTS", "* OK [UNSEEN 2]", "a2 OK [READ-WRITE]"],
+            Ve(
+              0.137,
+              ue,
+              f,
+              "* 2 EXISTS … a2 OK [READ-WRITE] SELECT completed",
+              Wi,
+            ),
+            Ue,
+          ),
+        ],
+      },
+      {
+        title: "Read a Message",
+        desc: "FETCH, and the \\Seen flag",
+        detail:
+          "FETCH 2 BODY[] downloads message 2 (three TCP segments). That sets its \\Seen flag on the server, so it shows as read on Bob’s phone too, and the message stays there.",
+        facts: [
+          ["Command", "a3 FETCH 2 BODY[]"],
+          ["Flag set", "\\Seen (on the server)"],
+          ["Sent as", "3 TCP segments"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "a3 FETCH",
+            ["a3 FETCH 2 BODY[]"],
+            Ve(0.152, f, ue, "a3 FETCH 2 BODY[]", ji),
+            Ue,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "MESSAGE",
+            [
+              "* 2 FETCH (FLAGS (\\Seen)",
+              "BODY[] {3216} …)",
+              "a3 OK FETCH completed",
+            ],
+            {
+              time: N(0.167),
+              src: ue,
+              dst: f,
+              proto: "IMAP (TLS)",
+              info: `* 2 FETCH (FLAGS (\\Seen) BODY[] …), ${Ze(Ps)} segments`,
+              len: it(Vi, Ze(Ps)),
+              wire: O(Jo, ue, "PA", {
+                tls: [
+                  {
+                    type: "appdata",
+                    length: Ps - 5,
+                    inner: {
+                      what: "* 2 FETCH (FLAGS (\\Seen) BODY[] {3216}, the 3,216-byte message, then a3 OK FETCH completed",
+                    },
+                  },
+                ],
+              }),
+            },
+            Ue,
+          ),
+          {
+            type: "note",
+            at: "web",
+            text: "STILL ON SERVER · \\SEEN",
+            tone: "green",
+          },
+        ],
+      },
+      {
+        title: "Wait for New Mail",
+        desc: "IDLE: the server pushes",
+        detail:
+          "IDLE tells the server “let me know when something changes”. About 42 seconds later Alice’s message arrives and the server pushes “* 3 EXISTS” straight away. The app ends IDLE with DONE and can fetch the new mail.",
+        facts: [
+          ["Command", "a4 IDLE"],
+          ["Server says", "* 3 EXISTS (new mail)"],
+          ["Ended by", "DONE"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "amber",
+            "a4 IDLE",
+            ["a4 IDLE"],
+            Ve(0.182, f, ue, "a4 IDLE", ze("a4 IDLE")),
+            Ue,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "+ idling",
+            ["+ idling"],
+            Ve(0.197, ue, f, "+ idling", ze("+ idling")),
+            Ue,
+          ),
+          { type: "note", at: "web", text: "NEW MAIL ARRIVED", tone: "navy" },
+          u(
+            "web",
+            "client",
+            "violet",
+            "* 3 EXISTS",
+            ["* 3 EXISTS", "* 1 RECENT"],
+            Ve(
+              42.515,
+              ue,
+              f,
+              "* 3 EXISTS, * 1 RECENT",
+              ze("* 3 EXISTS", "* 1 RECENT"),
+            ),
+            Ue,
+          ),
+          u(
+            "client",
+            "web",
+            "amber",
+            "DONE",
+            ["DONE"],
+            Ve(42.53, f, ue, "DONE", ze("DONE")),
+            Ue,
+          ),
+          u(
+            "web",
+            "client",
+            "violet",
+            "a4 OK",
+            ["a4 OK IDLE terminated"],
+            Ve(
+              42.545,
+              ue,
+              f,
+              "a4 OK IDLE terminated",
+              ze("a4 OK IDLE terminated"),
+            ),
+            Ue,
+          ),
+        ],
+      },
+    ],
+  },
+  Ye = "203.0.113.21",
+  Wt = 4e3,
+  nn = 195 * 256 + 149,
+  Qi = $e(f, 52800, Ye, 21),
+  er = $e(f, 52801, Ye, nn),
+  ga = (e, t, s, a, n) => ({
+    time: N(e),
+    src: t,
+    dst: s,
+    proto: "FTP",
+    info: a,
+    len: `${be(ye(n))} B`,
+    wire: O(Qi, t, "PA", { text: [n], name: "FTP" }),
+  }),
+  ss = (e, t) =>
+    u("client", "web", "amber", t.split(" ")[0], [t], ga(e, f, Ye, t, t)),
+  Ut = (e, t, s, a) => u("web", "client", "violet", t, s, ga(e, Ye, f, a, a)),
+  jt = [];
+for (let e = Wt; e > 0; e -= K) jt.push(Math.min(K, e));
+const zi = (e, t) => {
+    const s = 1 + t * K;
+    return {
+      time: N(0.225),
+      src: Ye,
+      dst: f,
+      proto: "FTP-DATA",
+      info: `FTP Data: ${e} bytes (Seq=${s})`,
+      len: `${be(e)} B`,
+      wire: O(er, Ye, t === jt.length - 1 ? "PA" : "A", {
+        opaque: e,
+        what: `report.pdf, bytes ${s}–${s + e - 1}`,
+        name: "FTP data",
+        note: "The file itself, unencrypted: anyone on the path could read it.",
+      }),
+    };
+  },
+  Zi = {
+    id: "ftp",
+    name: "FTP",
+    title: "Transferring Files",
+    layer: 7,
+    nodes: ["client", "router", "internet", "web"],
+    latency: { "client-web": 0.015 },
+    labels: { web: ["ftp.example.com", Ye] },
+    legend: [
+      ["green", "TCP"],
+      ["amber", "FTP command"],
+      ["violet", "FTP reply"],
+      ["blue", "File data"],
+      [null, "Data ACKs not shown"],
+    ],
+    overview: {
+      full: "File Transfer Protocol",
+      description:
+        "FTP moves files between a client and a server. It is unusual in using two TCP connections: one for commands and replies, and a fresh one for each file or listing. It dates from the early 1970s and sends everything, passwords included, as plain text.",
+      facts: [
+        ["Layer", "Application (Layer 7)"],
+        ["Ports", "21 control, data varies"],
+        ["Connections", "Control + one per transfer"],
+        ["Encryption", "None (plain text)"],
+        ["Safer options", "SFTP, or FTPS (FTP + TLS)"],
+        ["Defined In", "RFC 959"],
+      ],
+    },
+    outro: {
+      title: "File downloaded",
+      desc: "Two connections, no encryption",
+      text: "Commands went over the control connection, the file over its own data connection, and closing that connection marked the end of the file. Anyone on the path could have read the password and the file, which is why SFTP or FTPS is used today.",
+      facts: [
+        ["Connections", "2 (control + data)"],
+        ["File", `${Wt.toLocaleString("en-US")} bytes, ${jt.length} segments`],
+        ["Password", "Sent in plain text"],
+        ["Use instead", "SFTP or FTPS"],
+      ],
+    },
+    start: { nodes: ["client"], frame: "client" },
+    steps: [
+      {
+        title: "Control Connection",
+        desc: "Port 21, plain text",
+        detail:
+          "The FTP app opens a TCP connection to ftp.example.com on port 21. This control connection carries commands and replies for the whole session. The server greets with 220. Like SMTP, every reply starts with a three-digit code.",
+        facts: [
+          ["Server", "ftp.example.com:21"],
+          ["Greeting", "220 (vsFTPd 3.0.5)"],
+          ["Encrypted", "No"],
+        ],
+        events: [
+          { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+          ...Je({ dst: Ye, sport: 52800, dport: 21, t: [0, 0.015, 0.03] }),
+          Ut(0.045, "220", ["220 (vsFTPd 3.0.5)"], "220 (vsFTPd 3.0.5)"),
+        ],
+      },
+      {
+        title: "Log In",
+        desc: "USER and PASS, readable by anyone",
+        detail:
+          "The app sends USER, the server asks for the password with 331, and PASS sends it. Nothing is encrypted, so the user name and password cross every network on the way as readable text.",
+        facts: [
+          ["Commands", "USER alice, PASS secret"],
+          ["Result", "230 Login successful."],
+          ["Visible to", "Anyone on the path"],
+        ],
+        events: [
+          ss(0.06, "USER alice"),
+          Ut(
+            0.075,
+            "331",
+            ["331 Please specify", "the password."],
+            "331 Please specify the password.",
+          ),
+          ss(0.09, "PASS secret"),
+          {
+            type: "note",
+            at: "router",
+            text: "PASSWORD IN PLAIN TEXT",
+            tone: "amber",
+          },
+          Ut(0.105, "230", ["230 Login successful."], "230 Login successful."),
+        ],
+      },
+      {
+        title: "Passive Mode",
+        desc: "The server names a data port",
+        detail:
+          "TYPE I asks for a byte-for-byte binary copy. PASV asks the server to open a port for the data connection. The reply encodes the address and port as six numbers: 195 × 256 + 149 = port 50069. The laptop connects out, which works through NAT.",
+        facts: [
+          ["Reply", "227 (203,0,113,21,195,149)"],
+          ["Data port", "195 × 256 + 149 = 50069"],
+          ["Active mode", "Server dials in: NAT blocks"],
+        ],
+        events: [
+          ss(0.12, "TYPE I"),
+          Ut(
+            0.135,
+            "200",
+            ["200 Switching to", "Binary mode."],
+            "200 Switching to Binary mode.",
+          ),
+          ss(0.15, "PASV"),
+          Ut(
+            0.165,
+            "227",
+            ["227 Entering Passive Mode", "(203,0,113,21,195,149)."],
+            "227 Entering Passive Mode (203,0,113,21,195,149).",
+          ),
+        ],
+      },
+      {
+        title: "Data Connection",
+        desc: "A second TCP connection",
+        detail:
+          "The app opens a second TCP connection, to port 50069, and asks for the file on the control connection with RETR. The server answers 150 there and starts sending the file over the new connection.",
+        facts: [
+          ["Data to", `ftp.example.com:${nn}`],
+          ["Command", "RETR report.pdf"],
+          ["Reply", "150 Opening BINARY …"],
+        ],
+        events: [
+          ...Je({ dst: Ye, sport: 52801, dport: nn, t: [0.18, 0.195, 0.21] }),
+          ss(0.21, "RETR report.pdf"),
+          u(
+            "web",
+            "client",
+            "violet",
+            "150",
+            ["150 Opening BINARY mode", "data connection …"],
+            ga(
+              0.225,
+              Ye,
+              f,
+              "150 Opening BINARY mode data connection …",
+              `150 Opening BINARY mode data connection for report.pdf (${Wt} bytes).`,
+            ),
+          ),
+        ],
+      },
+      {
+        title: "The File Arrives",
+        desc: "Closing the connection ends it",
+        detail: `The ${Wt.toLocaleString("en-US")} bytes arrive in ${jt.length} TCP segments. FTP sends no length marker in the data itself: the server closes the data connection to mark the end of the file. Once the laptop has acknowledged everything, the server confirms with 226 on the control connection.`,
+        facts: [
+          ["File", `report.pdf, ${Wt.toLocaleString("en-US")} bytes`],
+          ["Segments", jt.join(" + ")],
+          ["End of file", "Data connection closed"],
+        ],
+        events: [
+          {
+            type: "stream",
+            from: "web",
+            to: "client",
+            color: "blue",
+            label: `${jt.length} SEGMENTS`,
+            payload: [
+              "report.pdf",
+              `${Wt.toLocaleString("en-US")} bytes, readable by anyone`,
+            ],
+            packets: jt.map((e, t) =>
+              u("web", "client", "blue", "DATA", [], zi(e, t)),
+            ),
+          },
+          u(
+            "web",
+            "client",
+            "green",
+            "FIN",
+            ["end of file:", "data connection closed"],
+            {
+              time: N(0.225),
+              src: Ye,
+              dst: f,
+              proto: "TCP",
+              info: `${nn} → 52801 [FIN, ACK] Seq=${Wt + 1} Ack=1`,
+              len: `${be(0)} B`,
+              wire: O(er, Ye, "FA"),
+            },
+          ),
+          Ut(
+            0.255,
+            "226",
+            ["226 Transfer complete."],
+            "226 Transfer complete.",
+          ),
+        ],
+      },
+      {
+        title: "Quit",
+        desc: "Close the control connection",
+        detail:
+          "QUIT ends the session and the server says goodbye with 221. For anything sensitive, SFTP (a different protocol, run over SSH) or FTPS (FTP inside TLS) gives the same job encryption.",
+        facts: [
+          ["Command", "QUIT"],
+          ["Reply", "221 Goodbye."],
+          ["Encrypted cousins", "SFTP, FTPS"],
+        ],
+        events: [
+          ss(0.27, "QUIT"),
+          Ut(0.285, "221", ["221 Goodbye."], "221 Goodbye."),
+        ],
+      },
+    ],
+  },
+  Ne = "203.0.113.22",
+  tr = { locked: !0 },
+  sr = (e) => {
+    let t = 8 - (e % 8);
+    return (t < 4 && (t += 8), t);
+  },
+  fn = (e) => 5 + e + sr(5 + e),
+  ct = (e) => 5 + e + sr(1 + e) + 16,
+  W = (e) => 4 + (typeof e == "number" ? e : e.length),
+  ns = (e) => W(e.join(",")),
+  nr = (e) => e + Ze(e) * (Me + De + He),
+  cn = [
+    "sntrup761x25519-sha512@openssh.com",
+    "curve25519-sha256",
+    "curve25519-sha256@libssh.org",
+    "ecdh-sha2-nistp256",
+    "ecdh-sha2-nistp384",
+    "ecdh-sha2-nistp521",
+    "diffie-hellman-group-exchange-sha256",
+    "diffie-hellman-group16-sha512",
+    "diffie-hellman-group18-sha512",
+    "diffie-hellman-group14-sha256",
+  ],
+  ar = [
+    "ssh-ed25519-cert-v01@openssh.com",
+    "ecdsa-sha2-nistp256-cert-v01@openssh.com",
+    "ecdsa-sha2-nistp384-cert-v01@openssh.com",
+    "ecdsa-sha2-nistp521-cert-v01@openssh.com",
+    "sk-ssh-ed25519-cert-v01@openssh.com",
+    "sk-ecdsa-sha2-nistp256-cert-v01@openssh.com",
+    "rsa-sha2-512-cert-v01@openssh.com",
+    "rsa-sha2-256-cert-v01@openssh.com",
+    "ssh-ed25519",
+    "ecdsa-sha2-nistp256",
+    "ecdsa-sha2-nistp384",
+    "ecdsa-sha2-nistp521",
+    "sk-ssh-ed25519@openssh.com",
+    "sk-ecdsa-sha2-nistp256@openssh.com",
+    "rsa-sha2-512",
+    "rsa-sha2-256",
+  ],
+  or = ["rsa-sha2-512", "rsa-sha2-256", "ecdsa-sha2-nistp256", "ssh-ed25519"],
+  rr = [
+    "chacha20-poly1305@openssh.com",
+    "aes128-ctr",
+    "aes192-ctr",
+    "aes256-ctr",
+    "aes128-gcm@openssh.com",
+    "aes256-gcm@openssh.com",
+  ],
+  ir = [
+    "umac-64-etm@openssh.com",
+    "umac-128-etm@openssh.com",
+    "hmac-sha2-256-etm@openssh.com",
+    "hmac-sha2-512-etm@openssh.com",
+    "hmac-sha1-etm@openssh.com",
+    "umac-64@openssh.com",
+    "umac-128@openssh.com",
+    "hmac-sha2-256",
+    "hmac-sha2-512",
+    "hmac-sha1",
+  ],
+  lr = ["none", "zlib@openssh.com"],
+  cr = (e, t) =>
+    fn(
+      17 +
+        ns(e) +
+        ns(t) +
+        2 * ns(rr) +
+        2 * ns(ir) +
+        2 * ns(lr) +
+        2 * ns([]) +
+        1 +
+        4,
+    ),
+  to = cr([...cn, "ext-info-c", "kex-strict-c-v00@openssh.com"], ar),
+  Ji = cr([...cn, "ext-info-s", "kex-strict-s-v00@openssh.com"], or),
+  hs = W("ssh-ed25519") + W(32),
+  wa = W("ssh-ed25519") + W(64),
+  el = fn(1 + W(1190)),
+  tl = fn(1 + W(hs) + W(1071) + W(wa)),
+  so = fn(1),
+  Sa = W("alice") + W("ssh-connection"),
+  no = ct(1 + W("ssh-userauth")),
+  sl = ct(1 + Sa + W("none")),
+  nl = ct(1 + W("publickey,password") + 1),
+  al = ct(1 + Sa + W("publickey") + 1 + W("ssh-ed25519") + W(hs)),
+  ol = ct(1 + W("ssh-ed25519") + W(hs)),
+  rl = ct(
+    1 +
+      Sa +
+      W("publickey-hostbound-v00@openssh.com") +
+      1 +
+      W("ssh-ed25519") +
+      W(hs) +
+      W(hs) +
+      W(wa),
+  ),
+  il = ct(1),
+  ll = ct(1 + W("session") + 4 + 4 + 4),
+  cl = ct(17),
+  dr = (e) => ct(5 + W(e)),
+  Rt = dr(1),
+  dl =
+    "\x1B]0;alice@server: ~\x07\x1B[01;32malice@server\x1B[00m:\x1B[01;34m~\x1B[00m$ ",
+  pr =
+    `\r
+\x1B[?2004l\r/home/alice\r
+\x1B[?2004h` + dl,
+  pl = dr(pr.length),
+  hl = $e(f, 53210, Ne, 22),
+  mt = (e, t, s, a, n, o) => ({
+    time: N(e),
+    src: t,
+    dst: s,
+    proto: "SSH",
+    info: a,
+    len: it(nr(n), Ze(n)),
+    wire: O(hl, t, "PA", o),
+  }),
+  hr = (e, t, s, a, n, o) =>
+    mt(e, t, s, `Encrypted (len=${n}): ${a}`, n, {
+      ssh: { sealed: n, inside: o },
+    }),
+  pt = (e, t, s, a, n, o, r) =>
+    u("client", "web", "amber", t, s, hr(e, f, Ne, a, n, r), { ...tr, ...o }),
+  ht = (e, t, s, a, n, o, r) =>
+    u("web", "client", "violet", t, s, hr(e, Ne, f, a, n, r), { ...tr, ...o }),
+  ao = (e) => ({ text: [e], name: "SSH" }),
+  oo = (e, t) => ({
+    ssh: {
+      msg: "kexinit",
+      kex: e,
+      hostkeys: t,
+      ciphers: rr,
+      macs: ir,
+      compression: lr,
+    },
+  }),
+  It = "SSH_MSG_CHANNEL_DATA (94), channel 0:",
+  Be = { quick: !0 },
+  ul = {
+    id: "ssh",
+    name: "SSH",
+    title: "Secure Remote Login",
+    layer: 7,
+    nodes: ["client", "router", "internet", "web"],
+    latency: { "client-web": 0.015 },
+    labels: { web: ["server.example.com", Ne] },
+    legend: [
+      ["green", "TCP"],
+      ["slate", "Plain setup"],
+      ["teal", "Key exchange"],
+      ["amber", "From laptop"],
+      ["violet", "From server"],
+      [null, "Some packets not shown"],
+    ],
+    overview: {
+      full: "Secure Shell",
+      description:
+        "SSH gives you an encrypted, authenticated connection to another computer, to run commands on it, copy files (SFTP, scp) or carry other connections. The server proves who it is with a host key; you prove who you are with a key pair or a password.",
+      facts: [
+        ["Layer", "Application (Layer 7)"],
+        ["Port", "22"],
+        ["Transport", "TCP"],
+        ["Server proves", "Host key (known_hosts)"],
+        ["You prove", "Key pair or password"],
+        ["Defined In", "RFC 4251 – 4254"],
+      ],
+    },
+    outro: {
+      title: "Logged in securely",
+      desc: "Encrypted from the key exchange on",
+      text: "The two sides agreed on algorithms, built shared keys with a post-quantum hybrid exchange, and the server proved its identity with its host key. Alice proved hers by signing with a private key that never left the laptop, then typed a command, one packet per key.",
+      facts: [
+        ["Key exchange", "sntrup761 + X25519"],
+        ["Cipher", "ChaCha20-Poly1305"],
+        ["Login", "Ed25519 key, no password"],
+        ["Port", "22"],
+      ],
+    },
+    start: { nodes: ["client"], frame: "client" },
+    steps: [
+      {
+        title: "Say Hello",
+        desc: "Versions, in plain text",
+        detail:
+          "Alice runs “ssh alice@server.example.com”. After the TCP handshake on port 22, each side sends one line of plain text naming the SSH protocol version (2.0) and its software. Everything else in SSH is binary.",
+        facts: [
+          ["Laptop", "OpenSSH_for_Windows_9.5"],
+          ["Server", "OpenSSH_9.6p1 Ubuntu"],
+          ["Protocol", "SSH-2.0"],
+        ],
+        events: [
+          { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+          ...Je({ dst: Ne, sport: 53210, dport: 22, t: [0, 0.015, 0.03] }),
+          u(
+            "client",
+            "web",
+            "slate",
+            "VERSION",
+            ["SSH-2.0-", "OpenSSH_for_Windows_9.5"],
+            mt(
+              0.03,
+              f,
+              Ne,
+              "Client: SSH-2.0-OpenSSH_for_Windows_9.5",
+              ye("SSH-2.0-OpenSSH_for_Windows_9.5"),
+              ao("SSH-2.0-OpenSSH_for_Windows_9.5"),
+            ),
+          ),
+          u(
+            "web",
+            "client",
+            "slate",
+            "VERSION",
+            ["SSH-2.0-OpenSSH_9.6p1", "Ubuntu-3ubuntu13.5"],
+            mt(
+              0.045,
+              Ne,
+              f,
+              "Server: SSH-2.0-OpenSSH_9.6p1 Ubuntu-3ubuntu13.5",
+              ye("SSH-2.0-OpenSSH_9.6p1 Ubuntu-3ubuntu13.5"),
+              ao("SSH-2.0-OpenSSH_9.6p1 Ubuntu-3ubuntu13.5"),
+            ),
+          ),
+        ],
+      },
+      {
+        title: "Agree on Algorithms",
+        desc: "KEXINIT lists, first match wins",
+        detail:
+          "Each side sends a KEXINIT listing every algorithm it supports, in order of preference, for key exchange, host keys, encryption, integrity and compression. In each category the first algorithm on the laptop’s list that the server also supports is chosen.",
+        facts: [
+          ["Key exchange", "sntrup761x25519-sha512"],
+          ["Host key", "ssh-ed25519"],
+          ["Cipher", "chacha20-poly1305"],
+        ],
+        events: [
+          u(
+            "web",
+            "client",
+            "slate",
+            "KEXINIT",
+            ["server’s algorithm lists", "in order of preference"],
+            mt(
+              0.045,
+              Ne,
+              f,
+              "Server: Key Exchange Init",
+              Ji,
+              oo([...cn, "ext-info-s", "kex-strict-s-v00@openssh.com"], or),
+            ),
+          ),
+          u(
+            "client",
+            "web",
+            "slate",
+            "KEXINIT",
+            ["laptop’s algorithm lists", "in order of preference"],
+            mt(
+              0.06,
+              f,
+              Ne,
+              `Client: Key Exchange Init, ${Ze(to)} segments`,
+              to,
+              oo([...cn, "ext-info-c", "kex-strict-c-v00@openssh.com"], ar),
+            ),
+          ),
+        ],
+      },
+      {
+        title: "Key Exchange",
+        desc: "Shared keys, and a host key check",
+        detail:
+          "The laptop sends its half of a hybrid exchange: a Streamlined NTRU Prime key, chosen to resist future quantum computers, plus an X25519 key. The server answers with its half, its host key and a signature over the exchange. NEWKEYS switches encryption on.",
+        facts: [
+          ["Hybrid", "sntrup761 + X25519"],
+          ["Host key", "Matches known_hosts"],
+          ["First visit", "ssh asks you to confirm"],
+        ],
+        events: [
+          u(
+            "client",
+            "web",
+            "teal",
+            "KEX INIT",
+            ["sntrup761 + X25519", "public keys"],
+            mt(
+              0.06,
+              f,
+              Ne,
+              "Client: KEX_ECDH_INIT (sntrup761x25519 public keys)",
+              el,
+              { ssh: { msg: "ecdh_init", q: 1190 } },
+            ),
+          ),
+          u(
+            "web",
+            "client",
+            "teal",
+            "KEX REPLY",
+            ["its half, its host key", "and a signature"],
+            mt(
+              0.075,
+              Ne,
+              f,
+              "Server: KEX_ECDH_REPLY (host key, its half, signature)",
+              tl,
+              { ssh: { msg: "ecdh_reply", ks: hs, q: 1071, sig: wa } },
+            ),
+          ),
+          u(
+            "web",
+            "client",
+            "teal",
+            "NEWKEYS",
+            [],
+            mt(0.075, Ne, f, "Server: New Keys", so, {
+              ssh: { msg: "newkeys" },
+            }),
+            Be,
+          ),
+          {
+            type: "note",
+            at: "client",
+            text: "HOST KEY MATCHES KNOWN_HOSTS",
+            tone: "green",
+          },
+          u(
+            "client",
+            "web",
+            "teal",
+            "NEWKEYS",
+            [],
+            mt(0.09, f, Ne, "Client: New Keys", so, {
+              ssh: { msg: "newkeys" },
+            }),
+            Be,
+          ),
+        ],
+      },
+      {
+        title: "Log In with a Key",
+        desc: "Sign, don’t send a secret",
+        detail:
+          "The server lists the login methods it accepts. The laptop offers Alice’s public key, and the server says it would accept it. The laptop then signs this session with the private key, which never leaves the laptop. The server checks the signature against authorized_keys.",
+        facts: [
+          ["Methods", "publickey, password"],
+          ["Key", "Ed25519, private stays here"],
+          ["Checked with", "~/.ssh/authorized_keys"],
+        ],
+        events: [
+          pt(
+            0.09,
+            "SERVICE REQUEST",
+            [],
+            "service request, ssh-userauth",
+            no,
+            Be,
+            "SSH_MSG_SERVICE_REQUEST (5): “ssh-userauth”",
+          ),
+          ht(
+            0.105,
+            "SERVICE ACCEPT",
+            [],
+            "service accept",
+            no,
+            Be,
+            "SSH_MSG_SERVICE_ACCEPT (6): “ssh-userauth”",
+          ),
+          pt(
+            0.12,
+            "AUTH: NONE",
+            [],
+            "login with method none",
+            sl,
+            Be,
+            "SSH_MSG_USERAUTH_REQUEST (50): user “alice”, service “ssh-connection”, method “none”",
+          ),
+          ht(
+            0.135,
+            "AUTH FAILURE",
+            [],
+            "try publickey,password",
+            nl,
+            Be,
+            "SSH_MSG_USERAUTH_FAILURE (51): methods that can continue: “publickey,password”",
+          ),
+          pt(
+            0.15,
+            "OFFER KEY",
+            ["alice’s public key", "would you accept it?"],
+            "offer public key",
+            al,
+            {},
+            "SSH_MSG_USERAUTH_REQUEST (50): method “publickey”, no signature, the ssh-ed25519 public key",
+          ),
+          ht(
+            0.165,
+            "PK OK",
+            ["yes, that key", "is in authorized_keys"],
+            "public key OK",
+            ol,
+            {},
+            "SSH_MSG_USERAUTH_PK_OK (60): the same ssh-ed25519 key",
+          ),
+          pt(
+            0.18,
+            "SIGNED",
+            ["same key, plus a signature", "made with the private key"],
+            "public key + signature",
+            rl,
+            {},
+            "SSH_MSG_USERAUTH_REQUEST (50): method “publickey-hostbound-v00@openssh.com”, the key, the server’s host key and a signature",
+          ),
+          ht(
+            0.195,
+            "SUCCESS",
+            ["logged in"],
+            "login success",
+            il,
+            {},
+            "SSH_MSG_USERAUTH_SUCCESS (52)",
+          ),
+        ],
+      },
+      {
+        title: "Open a Session",
+        desc: "Channels inside one connection",
+        detail:
+          "One SSH connection can carry many channels: a shell, file transfers, forwarded ports. The laptop opens a session channel, then asks for a terminal and a shell (not shown), and the server sends its welcome text and a prompt.",
+        facts: [
+          ["Channel", "session"],
+          ["Then asks for", "A terminal and a shell"],
+          ["Also possible", "SFTP, port forwarding"],
+        ],
+        events: [
+          pt(
+            0.21,
+            "CHANNEL OPEN",
+            ["open a channel:", "session"],
+            "channel open: session",
+            ll,
+            {},
+            "SSH_MSG_CHANNEL_OPEN (90): “session”, channel 0, window 2 MB, packets up to 32 KB",
+          ),
+          ht(
+            0.225,
+            "CONFIRMED",
+            ["channel open"],
+            "channel open confirmed",
+            cl,
+            {},
+            "SSH_MSG_CHANNEL_OPEN_CONFIRMATION (91): channel 0 is open",
+          ),
+        ],
+      },
+      {
+        title: "Type a Command",
+        desc: "Every key is a packet",
+        detail:
+          "Alice types pwd. Each key goes out at once in its own encrypted packet, and the server sends the character back to be shown (the echo). Since 9.5, OpenSSH sends keys on a 20 ms beat and adds decoy packets, so typing rhythm is harder to read from the timing.",
+        facts: [
+          ["Per key", `1 packet, ${nr(Rt)} bytes`],
+          ["Echo", "Sent back by the server"],
+          ["Timing", "20 ms beat plus decoys"],
+        ],
+        events: [
+          pt(2, "“p”", [], "keystroke", Rt, Be, `${It} 1 byte, “p”`),
+          ht(
+            2.015,
+            "ECHO",
+            [],
+            "echo",
+            Rt,
+            Be,
+            `${It} 1 byte, “p”, sent back to be shown`,
+          ),
+          pt(2.14, "“w”", [], "keystroke", Rt, Be, `${It} 1 byte, “w”`),
+          ht(
+            2.155,
+            "ECHO",
+            [],
+            "echo",
+            Rt,
+            Be,
+            `${It} 1 byte, “w”, sent back to be shown`,
+          ),
+          pt(2.26, "“d”", [], "keystroke", Rt, Be, `${It} 1 byte, “d”`),
+          ht(
+            2.275,
+            "ECHO",
+            [],
+            "echo",
+            Rt,
+            Be,
+            `${It} 1 byte, “d”, sent back to be shown`,
+          ),
+          pt(
+            2.42,
+            "ENTER",
+            ["Enter key"],
+            "keystroke (Enter)",
+            Rt,
+            {},
+            `${It} 1 byte, a carriage return (Enter)`,
+          ),
+          ht(
+            2.435,
+            "OUTPUT",
+            ["/home/alice", "alice@server:~$"],
+            "output and a new prompt",
+            pl,
+            {},
+            `${It} ${pr.length} bytes: a new line, the shell’s terminal codes, “/home/alice”, and the coloured prompt`,
+          ),
+          {
+            type: "note",
+            at: "client",
+            text: "EACH KEY IS ITS OWN PACKET",
+            tone: "navy",
+          },
+        ],
+      },
+    ],
+  },
+  ie = "203.0.113.10",
+  as = { locked: !0 },
+  ws = Me + De + He,
+  fl = 1215,
+  ml = 6,
+  yl = 2729,
+  gl = fl + ml + yl,
+  gt = [];
+for (let e = gl; e > 0; e -= K) gt.push(Math.min(K, e));
+const ro = 2 + _t,
+  nt = (e, t, s, a, n, o = "TLSv1.3") => ({
+    time: N(e),
+    src: t,
+    dst: s,
+    proto: o,
+    info: a,
+    len: n,
+  }),
+  at = $e(f, 52411, ie, 443),
+  ot = (e, t) => ({ ...e, wire: t }),
+  io = gt.map((e, t) => gt.slice(0, t).reduce((s, a) => s + a, 0));
+// === EXPANDED_PROTOCOLS_CODE ===
+
+function decodeHttp2(t) {
+  const s = new me(
+    "http2",
+    "HTTP/2 · " + (t.type || "Frame") + " · Stream " + (t.streamId ?? 0),
+  );
+  s.field("Length", (t.length ?? 0) + " bytes", () => s.u24(t.length ?? 0), {
+    depth: 0,
+    note: "Length of the frame payload in octets (24 bits).",
+  });
+  const typeMap = {
+    0: "DATA (0x0)",
+    1: "HEADERS (0x1)",
+    2: "PRIORITY (0x2)",
+    3: "RST_STREAM (0x3)",
+    4: "SETTINGS (0x4)",
+    5: "PUSH_PROMISE (0x5)",
+    6: "PING (0x6)",
+    7: "GOAWAY (0x7)",
+    8: "WINDOW_UPDATE (0x8)",
+    9: "CONTINUATION (0x9)",
+  };
+  s.field(
+    "Type",
+    typeMap[t.typeCode ?? 0] || String(t.type),
+    () => s.u8(t.typeCode ?? 0),
+    { depth: 0, note: "Defines the frame format and semantics." },
+  );
+  s.field(
+    "Flags",
+    "0x" + (t.flags ?? 0).toString(16).padStart(2, "0"),
+    () => s.u8(t.flags ?? 0),
+    { depth: 0, note: "Flags specific to the frame type." },
+  );
+  s.field(
+    "Stream Identifier",
+    String(t.streamId ?? 0),
+    () => s.u32((t.streamId ?? 0) & 0x7fffffff),
+    {
+      depth: 0,
+      note: "Identifies the stream this frame belongs to (0 is control).",
+    },
+  );
+  if (t.headers) {
+    t.headers.forEach((h) =>
+      s.field("Header", h, () => s.ascii(h), { mono: true, depth: 1 }),
+    );
+  }
+  if (t.data) {
+    s.field("Payload", String(t.data), () => s.ascii(String(t.data)), {
+      mono: true,
+      depth: 1,
+    });
+  }
+  if (t.params) {
+    t.params.forEach((p) =>
+      s.field(
+        "Setting",
+        p.id + " = " + p.val,
+        () => s.u16(p.idCode ?? 1).u32(p.val),
+        { depth: 1 },
+      ),
+    );
+  }
+  if (t.errorCode !== undefined) {
+    s.field(
+      "Error Code",
+      "0x" + t.errorCode.toString(16) + " (" + (t.errorName || "ERROR") + ")",
+      () => s.u32(t.errorCode),
+      { depth: 1, tone: "rose" },
+    );
+  }
+  return s;
+}
+
+function decodeQuic(t) {
+  const s = new me(
+    "quic",
+    "QUIC · " + (t.packetType || "Datagram") + " · DCID: " + (t.dcid || ""),
+  );
+  s.field(
+    "Header Form",
+    t.isLong ? "1 (Long Header)" : "0 (Short Header)",
+    () => s.u8(t.isLong ? 0xc0 : 0x40),
+    {
+      note: "Long headers used during handshake; short headers for 1-RTT application data.",
+    },
+  );
+  if (t.isLong) {
+    s.field("Version", "0x00000001 (QUIC v1)", () => s.u32(1), {
+      note: "QUIC Version 1 (RFC 9000).",
+    });
+  }
+  s.field(
+    "Destination CID",
+    String(t.dcid),
+    () => s.ascii(String(t.dcid).slice(0, 8)),
+    {
+      mono: true,
+      note: "Unique Connection ID enabling seamless connection migration.",
+    },
+  );
+  s.field("Packet Number", "#" + t.packetNumber, () => s.u16(t.packetNumber), {
+    note: "Monotonically increasing packet number (never reused).",
+  });
+  if (t.frames) {
+    t.frames.forEach((f) => {
+      s.field(
+        "Frame",
+        f.type + (f.streamId !== undefined ? " · Stream " + f.streamId : ""),
+        () => {
+          s.u8(f.typeCode ?? 8);
+          if (f.data) s.ascii(String(f.data));
+        },
+        { depth: 1, mono: true, note: f.note },
+      );
+    });
+  }
+  return s;
+}
+
+function decodeWs(t) {
+  const s = new me(
+    "ws",
+    "WebSocket · " +
+      (t.opcodeName || "Frame") +
+      " · " +
+      (t.length ?? 0) +
+      " bytes",
+  );
+  s.field(
+    "FIN",
+    t.fin ? "1 (Final fragment)" : "0 (More fragments)",
+    () => s.u8(0x80 | ((t.opcode ?? 1) & 0x0f)),
+    { note: "Indicates whether this is the final fragment in a message." },
+  );
+  s.field(
+    "Opcode",
+    (t.opcode ?? 1) + " (" + (t.opcodeName || "Text") + ")",
+    () => {},
+    {
+      depth: 1,
+      note: "0x1: Text, 0x2: Binary, 0x8: Close, 0x9: Ping, 0xA: Pong",
+    },
+  );
+  s.field(
+    "Masked",
+    t.masked ? "1 (Client XOR masked)" : "0 (Unmasked)",
+    () => s.u8((t.masked ? 0x80 : 0x00) | Math.min(125, t.length ?? 0)),
+    {
+      note: "Client-to-server frames MUST be masked to prevent proxy caching attacks.",
+    },
+  );
+  s.field("Payload Length", (t.length ?? 0) + " bytes", () => {}, { depth: 1 });
+  if (t.masked && t.maskKey) {
+    s.field(
+      "Masking Key",
+      t.maskKey.map((b) => b.toString(16).padStart(2, "0")).join(" "),
+      () => {
+        t.maskKey.forEach((b) => s.u8(b));
+      },
+      { mono: true, note: "4-byte random key used to XOR payload." },
+    );
+  }
+  if (t.text) {
+    s.field("Payload Data", String(t.text), () => s.ascii(String(t.text)), {
+      mono: true,
+      depth: 1,
+    });
+  }
+  if (t.closeCode !== undefined) {
+    s.field(
+      "Close Code",
+      t.closeCode + " (Normal Closure)",
+      () => s.u16(t.closeCode),
+      { depth: 1 },
+    );
+  }
+  return s;
+}
+
+function decodeMqtt(t) {
+  const s = new me(
+    "mqtt",
+    "MQTT · " + (t.type || "Packet") + " · QoS " + (t.qos ?? 0),
+  );
+  s.field(
+    "Control Packet Type",
+    (t.typeCode ?? 1) + " (" + (t.type || "CONNECT") + ")",
+    () => s.u8(((t.typeCode & 0x0f) << 4) | ((t.flags || 0) & 0x0f)),
+    {
+      note: "Identifies MQTT message type: 1=CONNECT, 3=PUBLISH, 4=PUBACK, etc.",
+    },
+  );
+  s.field(
+    "Flags",
+    "DUP=" +
+      (t.dup ? 1 : 0) +
+      ", QoS=" +
+      (t.qos ?? 0) +
+      ", RETAIN=" +
+      (t.retain ? 1 : 0),
+    () => {},
+    { depth: 1 },
+  );
+  s.field(
+    "Remaining Length",
+    (t.remainingLength ?? 0) + " bytes",
+    () => s.u8(t.remainingLength ?? 0),
+    { note: "Length of variable header + payload." },
+  );
+  if (t.topic) {
+    s.field(
+      "Topic",
+      String(t.topic),
+      () => s.u16(t.topic.length).ascii(String(t.topic)),
+      { depth: 1, mono: true },
+    );
+  }
+  if (t.packetId !== undefined) {
+    s.field("Packet Identifier", String(t.packetId), () => s.u16(t.packetId), {
+      depth: 1,
+      note: "Used for QoS 1 & 2 delivery acknowledgments.",
+    });
+  }
+  if (t.payload) {
+    s.field("Payload", String(t.payload), () => s.ascii(String(t.payload)), {
+      depth: 1,
+      mono: true,
+    });
+  }
+  return s;
+}
+
+function decodeSse(t) {
+  const s = new me(
+    "sse",
+    "SSE · Event Stream · ID " + (t.id !== undefined ? t.id : "None"),
+  );
+  if (t.headers) {
+    t.headers.forEach((h) =>
+      s.field("Header", h, () => s.ascii(h + "\r\n"), { mono: true }),
+    );
+  }
+  if (t.event) {
+    s.field("event", t.event, () => s.ascii("event: " + t.event + "\r\n"), {
+      mono: true,
+      depth: 1,
+    });
+  }
+  if (t.id !== undefined) {
+    s.field("id", String(t.id), () => s.ascii("id: " + t.id + "\r\n"), {
+      mono: true,
+      depth: 1,
+    });
+  }
+  if (t.data) {
+    s.field(
+      "data",
+      String(t.data),
+      () => s.ascii("data: " + t.data + "\r\n\r\n"),
+      { mono: true, depth: 1 },
+    );
+  }
+  return s;
+}
+
+function decodeChunked(t) {
+  const s = new me("chunked", "HTTP Chunked · Size: " + (t.hexSize || "0"));
+  s.field(
+    "Chunk Size (Hex)",
+    (t.hexSize || "0") + " (" + (t.byteCount ?? 0) + " bytes)",
+    () => s.ascii((t.hexSize || "0") + "\r\n"),
+    { mono: true, note: "Hexadecimal length of the following data octets." },
+  );
+  if (t.data) {
+    s.field(
+      "Chunk Data",
+      String(t.data),
+      () => s.ascii(String(t.data) + "\r\n"),
+      { mono: true, depth: 1 },
+    );
+  }
+  if (t.trailers) {
+    t.trailers.forEach((tr) =>
+      s.field("Trailer", tr, () => s.ascii(tr + "\r\n"), {
+        mono: true,
+        depth: 1,
+        note: "Trailing headers sent after the zero chunk.",
+      }),
+    );
+  }
+  return s;
+}
+
+function decodeGrpc(t) {
+  const s = new me(
+    "grpc",
+    "gRPC · " + (t.service || "Service") + "/" + (t.method || "Method"),
+  );
+  s.field(
+    "Compressed-Flag",
+    (t.compressed ? 1 : 0) +
+      " (" +
+      (t.compressed ? "Compressed" : "Uncompressed") +
+      ")",
+    () => s.u8(t.compressed ? 1 : 0),
+    { note: "1-byte flag indicating gzip/deflate compression." },
+  );
+  s.field(
+    "Message-Length",
+    (t.length ?? 0) + " bytes",
+    () => s.u32(t.length ?? 0),
+    { note: "4-byte big-endian length of the protobuf payload." },
+  );
+  if (t.fields) {
+    t.fields.forEach((f) =>
+      s.field(
+        "Field " + f.tag + " (" + f.name + ")",
+        String(f.val),
+        () => s.u8((f.tag << 3) | (f.wireType ?? 0)).ascii(String(f.val)),
+        { mono: true, depth: 1 },
+      ),
+    );
+  }
+  if (t.trailers) {
+    t.trailers.forEach((tr) =>
+      s.field(
+        "Trailer",
+        tr.name + ": " + tr.val,
+        () => s.ascii(tr.name + ": " + tr.val),
+        {
+          mono: true,
+          depth: 1,
+          note: "Delivered in HTTP/2 trailing HEADERS frame.",
+        },
+      ),
+    );
+  }
+  return s;
+}
+
+// ==================== 7 MODERN PROTOCOL LESSONS ====================
+
+const lessonHttp2 = {
+  id: "http2",
+  name: "HTTP/2",
+  title: "Multiplexed Binary Streams",
+  layer: 7,
+  nodes: ["client", "router", "internet", "web"],
+  latency: {
+    "client-web": 0.018,
+    "client-router": 0.002,
+    "router-web": 0.016,
+    "client-internet": 0.01,
+    "internet-web": 0.008,
+  },
+  legend: [
+    ["green", "TCP"],
+    ["teal", "TLS 1.3"],
+    ["amber", "Stream 1 (HTML)"],
+    ["violet", "Stream 3 (CSS)"],
+    ["blue", "Stream 5 (Image)"],
+    ["rose", "RST_STREAM / Loss"],
+  ],
+  overview: {
+    full: "Hypertext Transfer Protocol Version 2",
+    description:
+      "HTTP/2 replaces plain text with binary framing and stream multiplexing over a single TCP connection. Multiple requests and responses interleave concurrently without head-of-line blocking at the application layer.",
+    facts: [
+      ["Layer", "Application (Layer 7)"],
+      ["Default Port", "443 (h2 via ALPN)"],
+      ["Transport", "TCP + TLS 1.3"],
+      ["Framing", "Binary frames (Length, Type, Flags, Stream ID)"],
+      ["Multiplexing", "Concurrent streams on 1 TCP connection"],
+      ["Defined In", "RFC 7540, RFC 9113"],
+    ],
+  },
+  outro: {
+    title: "Multiplexed Streams Completed",
+    desc: "Concurrent delivery on a single connection",
+    text: "HTTP/2 sent HTML, CSS, and Images interleaved across independent streams. However, when TCP packet loss occurred, all streams paused until TCP recovered (TCP head-of-line blocking).",
+    facts: [
+      ["Active Streams", "Stream 1, 3, 5"],
+      ["Connection Overhead", "1 TCP + TLS Handshake"],
+      ["Multiplexing Gain", "Zero HTTP head-of-line blocking"],
+      ["Transport Vulnerability", "TCP packet loss halts all streams"],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "TCP & TLS 1.3 Handshake",
+      desc: "Establishes secure transport with h2 ALPN",
+      detail:
+        "Before any HTTP/2 frames can be sent, the browser establishes a TCP connection and negotiates TLS 1.3 with ALPN set to h2.",
+      facts: [
+        ["TCP Port", "443"],
+        ["TLS Extension", "ALPN: h2"],
+        ["Round Trips", "2 (1 TCP + 1 TLS 1.3)"],
+      ],
+      events: [
+        { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+        u(
+          "client",
+          "web",
+          "green",
+          "SYN",
+          ["TCP SYN", "sport: 52410, dport: 443"],
+          {
+            time: "0.000s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "TCP",
+            info: "52410 → 443 [SYN] Seq=0 Win=65535",
+            len: "66 B",
+            wire: { tcp: { sport: 52410, dport: 443, flags: "S" } },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "green",
+          "SYN-ACK",
+          ["TCP SYN, ACK", "sport: 443, dport: 52410"],
+          {
+            time: "0.018s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "TCP",
+            info: "443 → 52410 [SYN, ACK] Seq=0 Ack=1 Win=65535",
+            len: "66 B",
+            wire: { tcp: { sport: 443, dport: 52410, flags: "SA" } },
+          },
+        ),
+        u(
+          "client",
+          "web",
+          "teal",
+          "CLIENT HELLO",
+          ["TLS 1.3 Client Hello", "ALPN: h2"],
+          {
+            time: "0.036s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "TLSv1.3",
+            info: "Client Hello (ALPN: h2)",
+            len: "312 B",
+            wire: { tcp: { sport: 52410, dport: 443, flags: "PA" } },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "teal",
+          "SERVER HELLO",
+          ["TLS 1.3 Server Hello", "Encrypted Extensions, Finished"],
+          {
+            time: "0.054s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "TLSv1.3",
+            info: "Server Hello, Finished",
+            len: "950 B",
+            wire: { tcp: { sport: 443, dport: 52410, flags: "PA" } },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "TLS ALPN NEGOTIATED: h2",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "HTTP/2 Preface & SETTINGS",
+      desc: "Negotiates stream parameters and window sizes",
+      detail:
+        "Client sends the 24-byte HTTP/2 connection preface followed by a SETTINGS frame on Stream 0. The server confirms with a SETTINGS ACK.",
+      facts: [
+        ["Preface", "PRI * HTTP/2.0"],
+        ["Control Stream", "Stream 0"],
+        ["Max Streams", "100 concurrent"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "amber",
+          "PREFACE + SETTINGS",
+          ["Preface (24 bytes)", "SETTINGS (Stream 0)"],
+          {
+            time: "0.072s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP/2",
+            info: "SETTINGS [MAX_CONCURRENT_STREAMS=100]",
+            len: "98 B",
+            wire: {
+              tcp: {
+                sport: 52410,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  http2: {
+                    type: "SETTINGS",
+                    streamId: 0,
+                    typeCode: 4,
+                    flags: 0,
+                    params: [
+                      { id: "MAX_CONCURRENT_STREAMS", val: 100, idCode: 3 },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "amber",
+          "SETTINGS ACK",
+          ["SETTINGS ACK (Stream 0)"],
+          {
+            time: "0.090s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP/2",
+            info: "SETTINGS [ACK]",
+            len: "60 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52410,
+                flags: "A",
+                data: {
+                  http2: {
+                    type: "SETTINGS",
+                    streamId: 0,
+                    typeCode: 4,
+                    flags: 1,
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "web",
+          text: "STREAM PREFACE & SETTINGS EXCHANGED",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Multiplexed Streams (1, 3, 5)",
+      desc: "Client requests HTML, CSS, and Image simultaneously",
+      detail:
+        "Unlike HTTP/1.1 which needed multiple TCP connections, HTTP/2 sends 3 distinct HEADERS frames over the same connection concurrently on odd-numbered streams (1, 3, 5).",
+      facts: [
+        ["Stream 1", "GET /index.html"],
+        ["Stream 3", "GET /style.css"],
+        ["Stream 5", "GET /hero.png"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "amber",
+          "HEADERS (Str 1)",
+          ["GET /index.html", "Stream 1"],
+          {
+            time: "0.110s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP/2",
+            info: "HEADERS Stream: 1 [GET /index.html]",
+            len: "82 B",
+            wire: {
+              tcp: {
+                sport: 52410,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  http2: {
+                    type: "HEADERS",
+                    streamId: 1,
+                    typeCode: 1,
+                    flags: 5,
+                    headers: [
+                      ":method GET",
+                      ":path /index.html",
+                      ":scheme https",
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "client",
+          "web",
+          "violet",
+          "HEADERS (Str 3)",
+          ["GET /style.css", "Stream 3"],
+          {
+            time: "0.111s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP/2",
+            info: "HEADERS Stream: 3 [GET /style.css]",
+            len: "78 B",
+            wire: {
+              tcp: {
+                sport: 52410,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  http2: {
+                    type: "HEADERS",
+                    streamId: 3,
+                    typeCode: 1,
+                    flags: 5,
+                    headers: [
+                      ":method GET",
+                      ":path /style.css",
+                      ":scheme https",
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "client",
+          "web",
+          "blue",
+          "HEADERS (Str 5)",
+          ["GET /hero.png", "Stream 5"],
+          {
+            time: "0.112s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP/2",
+            info: "HEADERS Stream: 5 [GET /hero.png]",
+            len: "76 B",
+            wire: {
+              tcp: {
+                sport: 52410,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  http2: {
+                    type: "HEADERS",
+                    streamId: 5,
+                    typeCode: 1,
+                    flags: 5,
+                    headers: [
+                      ":method GET",
+                      ":path /hero.png",
+                      ":scheme https",
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+      ],
+    },
+    {
+      title: "Server Interleaved Data & Packet Loss",
+      desc: "Stream 3 packet is dropped in transit",
+      detail:
+        "The server interleaves data chunks from all 3 streams. Stream 1 (HTML) and Stream 5 (Image) arrive safely, but the TCP packet carrying Stream 3 (CSS) is dropped by router congestion.",
+      facts: [
+        ["Stream 1 Status", "Arrived (500 B)"],
+        ["Stream 3 Status", "LOST IN TRANSIT"],
+        ["Stream 5 Status", "Arrived (1200 B)"],
+      ],
+      events: [
+        u(
+          "web",
+          "client",
+          "amber",
+          "DATA (Str 1)",
+          ["HTML Chunk", "Stream 1"],
+          {
+            time: "0.130s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP/2",
+            info: "DATA Stream: 1 (HTML 500 B)",
+            len: "550 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52410,
+                flags: "PA",
+                data: {
+                  http2: {
+                    type: "DATA",
+                    streamId: 1,
+                    typeCode: 0,
+                    flags: 1,
+                    length: 500,
+                    data: "<!DOCTYPE html><html><head><title>Test</title></head></html>",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "violet",
+          "DATA (Str 3)",
+          ["CSS Chunk", "Stream 3"],
+          {
+            time: "0.131s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP/2",
+            info: "DATA Stream: 3 (CSS 900 B)",
+            len: "950 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52410,
+                flags: "PA",
+                data: {
+                  http2: {
+                    type: "DATA",
+                    streamId: 3,
+                    typeCode: 0,
+                    flags: 0,
+                    length: 900,
+                    data: "body { background: #fff; color: #333; }",
+                  },
+                },
+              },
+            },
+          },
+          { lost: true },
+        ),
+        u(
+          "web",
+          "client",
+          "blue",
+          "DATA (Str 5)",
+          ["Image Chunk", "Stream 5"],
+          {
+            time: "0.132s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP/2",
+            info: "DATA Stream: 5 (Image 1200 B)",
+            len: "1250 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52410,
+                flags: "PA",
+                data: {
+                  http2: {
+                    type: "DATA",
+                    streamId: 5,
+                    typeCode: 0,
+                    flags: 0,
+                    length: 1200,
+                    data: "[PNG Image Binary Data]",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "internet",
+          text: "PACKET LOSS: STREAM 3 (CSS) DROPPED",
+          tone: "amber",
+        },
+      ],
+    },
+    {
+      title: "TCP Head-of-Line Blocking",
+      desc: "Stream 5 is blocked until Stream 3 recovers",
+      detail:
+        "Even though Stream 5 was completely received by the client's network card, the operating system TCP stack cannot pass it to the browser because TCP requires in-order byte delivery! All streams are stalled until Stream 3 is retransmitted.",
+      facts: [
+        ["Vulnerability", "TCP Head-of-Line Blocking"],
+        ["Client Action", "Duplicate ACK + SACK"],
+        ["Resolution", "Retransmission of Stream 3"],
+      ],
+      events: [
+        {
+          type: "note",
+          at: "client",
+          text: "TCP HOL BLOCKING: ALL STREAMS PAUSED",
+          tone: "rose",
+        },
+        u(
+          "client",
+          "web",
+          "green",
+          "TCP DUP ACK",
+          ["SACK block: Stream 5 received", "Waiting for Stream 3"],
+          {
+            time: "0.150s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "TCP",
+            info: "52410 → 443 [ACK] SACK: Missing Stream 3",
+            len: "74 B",
+            wire: { tcp: { sport: 52410, dport: 443, flags: "A" } },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "violet",
+          "DATA RETRANSMIT",
+          ["CSS Chunk (Stream 3)", "Retransmitted"],
+          {
+            time: "0.170s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP/2",
+            info: "DATA Stream: 3 (Retransmitted)",
+            len: "950 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52410,
+                flags: "PA",
+                data: {
+                  http2: {
+                    type: "DATA",
+                    streamId: 3,
+                    typeCode: 0,
+                    flags: 1,
+                    length: 900,
+                    data: "body { background: #fff; color: #333; }",
+                  },
+                },
+              },
+            },
+          },
+        ),
+      ],
+    },
+    {
+      title: "Stream Cancellation via RST_STREAM",
+      desc: "Client cancels Stream 5 without closing TCP connection",
+      detail:
+        "The user navigated away before the full image was needed. The client issues a RST_STREAM frame with error code CANCEL (0x8). The server stops sending image data immediately while keeping the TCP connection open for other streams.",
+      facts: [
+        ["Cancelled Stream", "Stream 5"],
+        ["Error Code", "0x8 (CANCEL)"],
+        ["Connection Impact", "Zero (TCP remains active)"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "rose",
+          "RST_STREAM",
+          ["Cancel Stream 5", "Code: CANCEL (0x8)"],
+          {
+            time: "0.195s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP/2",
+            info: "RST_STREAM Stream: 5 [CANCEL 0x8]",
+            len: "64 B",
+            wire: {
+              tcp: {
+                sport: 52410,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  http2: {
+                    type: "RST_STREAM",
+                    streamId: 5,
+                    typeCode: 3,
+                    flags: 0,
+                    errorCode: 8,
+                    errorName: "CANCEL",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "STREAM 5 CANCELLED: RST_STREAM",
+          tone: "green",
+        },
+      ],
+    },
+  ],
+};
+
+const lessonHttp3 = {
+  id: "http3",
+  name: "HTTP/3",
+  title: "QUIC over UDP Evolution",
+  layer: 7,
+  nodes: ["client", "router", "internet", "web"],
+  latency: {
+    "client-web": 0.016,
+    "client-router": 0.002,
+    "router-web": 0.014,
+    "client-internet": 0.009,
+    "internet-web": 0.007,
+  },
+  legend: [
+    ["teal", "QUIC Handshake (1-RTT)"],
+    ["amber", "Stream 0 (HTML)"],
+    ["blue", "Stream 4 (Image)"],
+    ["green", "QUIC ACK"],
+    ["rose", "Loss / Migration"],
+  ],
+  overview: {
+    full: "HTTP/3 over QUIC",
+    description:
+      "HTTP/3 runs over QUIC, a transport protocol built on top of UDP. It integrates TLS 1.3 encryption directly into transport, eliminates TCP head-of-line blocking, and supports seamless connection migration when networks switch.",
+    facts: [
+      ["Layer", "Application (Layer 7) / Transport (QUIC)"],
+      ["Default Port", "443 (UDP)"],
+      ["Transport", "QUIC over UDP"],
+      ["Handshake", "1-RTT (or 0-RTT resumption)"],
+      ["HoL Blocking", "None: Streams are strictly independent"],
+      ["Defined In", "RFC 9000, RFC 9114"],
+    ],
+  },
+  outro: {
+    title: "Independent QUIC Streams",
+    desc: "Zero Head-of-Line blocking and seamless mobility",
+    text: "HTTP/3 established encryption in a single round-trip over UDP. When a packet was lost on Stream 4, Stream 0 continued rendering without delay. Switching from Wi-Fi to 4G required no reconnect due to Connection IDs.",
+    facts: [
+      ["Handshake Time", "1 RTT (~18 ms)"],
+      ["HoL Blocking", "0 ms (isolated stream loss)"],
+      ["Connection Migration", "PATH_CHALLENGE / PATH_RESPONSE"],
+      ["Socket State", "Persisted across IP changes"],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "1-RTT QUIC Handshake",
+      desc: "Cryptographic handshake completed over UDP in 1 RTT",
+      detail:
+        "Client sends a QUIC Initial datagram over UDP port 443 carrying TLS 1.3 Client Hello. No separate TCP handshake is required. Encryption and transport parameters are negotiated simultaneously.",
+      facts: [
+        ["Transport", "UDP Port 443"],
+        ["Initial DCID", "0x8a3f9104c2"],
+        ["Handshake Round Trips", "1 RTT"],
+      ],
+      events: [
+        { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+        u(
+          "client",
+          "web",
+          "teal",
+          "QUIC INITIAL",
+          ["QUIC Initial [CRYPTO]", "TLS 1.3 Client Hello"],
+          {
+            time: "0.000s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "QUIC",
+            info: "Initial, DCID=8a3f9104, CRYPTO: Client Hello",
+            len: "1200 B",
+            wire: {
+              udp: {
+                sport: 50443,
+                dport: 443,
+                data: {
+                  quic: {
+                    isLong: true,
+                    packetType: "Initial",
+                    dcid: "8a3f9104",
+                    packetNumber: 1,
+                    frames: [
+                      {
+                        type: "CRYPTO",
+                        typeCode: 6,
+                        data: "TLS 1.3 Client Hello, ALPN=h3",
+                        note: "Carries TLS handshake records",
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "teal",
+          "INITIAL + HANDSHAKE",
+          ["Server Hello, Finished", "Handshake keys derived"],
+          {
+            time: "0.016s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "QUIC",
+            info: "Initial, Handshake [CRYPTO: Finished]",
+            len: "1280 B",
+            wire: {
+              udp: {
+                sport: 443,
+                dport: 50443,
+                data: {
+                  quic: {
+                    isLong: true,
+                    packetType: "Handshake",
+                    dcid: "8a3f9104",
+                    packetNumber: 1,
+                    frames: [
+                      {
+                        type: "CRYPTO",
+                        typeCode: 6,
+                        data: "Server Hello, Finished",
+                        note: "1-RTT Handshake completed",
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "QUIC 1-RTT HANDSHAKE COMPLETE",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Concurrent QUIC Streams",
+      desc: "Independent streams multiplexed over UDP datagrams",
+      detail:
+        "Client requests HTML on Stream 0 and Image on Stream 4 in 1-RTT short-header packets. In QUIC, each stream is tracked independently by the transport layer.",
+      facts: [
+        ["Stream 0", "GET /index.html"],
+        ["Stream 4", "GET /photo.webp"],
+        ["Header Form", "Short Header (1-RTT)"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "amber",
+          "1-RTT (Stream 0 & 4)",
+          ["HEADERS: Stream 0 (HTML)", "HEADERS: Stream 4 (Image)"],
+          {
+            time: "0.032s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP/3",
+            info: "1-RTT, Stream 0 & 4 [HEADERS]",
+            len: "140 B",
+            wire: {
+              udp: {
+                sport: 50443,
+                dport: 443,
+                data: {
+                  quic: {
+                    isLong: false,
+                    packetType: "1-RTT",
+                    dcid: "8a3f9104",
+                    packetNumber: 2,
+                    frames: [
+                      {
+                        type: "STREAM",
+                        streamId: 0,
+                        typeCode: 8,
+                        data: ":method GET :path /index.html",
+                      },
+                      {
+                        type: "STREAM",
+                        streamId: 4,
+                        typeCode: 8,
+                        data: ":method GET :path /photo.webp",
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "amber",
+          "STREAM 0 (HTML)",
+          ["HTML Data (500 B)", "Offset: 0"],
+          {
+            time: "0.050s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP/3",
+            info: "1-RTT, Stream: 0 Offset=0 Len=500",
+            len: "540 B",
+            wire: {
+              udp: {
+                sport: 443,
+                dport: 50443,
+                data: {
+                  quic: {
+                    isLong: false,
+                    packetType: "1-RTT",
+                    dcid: "8a3f9104",
+                    packetNumber: 3,
+                    frames: [
+                      {
+                        type: "STREAM",
+                        streamId: 0,
+                        typeCode: 8,
+                        data: "<!DOCTYPE html><html><h1>QUIC HTTP/3</h1></html>",
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+      ],
+    },
+    {
+      title: "Stream 4 Loss (No HoL Blocking)",
+      desc: "Image packet lost with zero delay to HTML stream",
+      detail:
+        "The UDP packet carrying Stream 4 (Image) is lost. In TCP, this would freeze Stream 0 from reaching the browser. In QUIC over UDP, Stream 0 is delivered and rendered immediately with ZERO delay!",
+      facts: [
+        ["Stream 0 Delivery", "Immediate (Rendered)"],
+        ["Stream 4 Status", "LOST IN TRANSIT"],
+        ["Head-of-Line Impact", "0 ms delay"],
+      ],
+      events: [
+        u(
+          "web",
+          "client",
+          "blue",
+          "STREAM 4 (IMAGE)",
+          ["Image Data (1200 B)", "Offset: 0"],
+          {
+            time: "0.052s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP/3",
+            info: "1-RTT, Stream: 4 Offset=0 Len=1200",
+            len: "1240 B",
+            wire: {
+              udp: {
+                sport: 443,
+                dport: 50443,
+                data: {
+                  quic: {
+                    isLong: false,
+                    packetType: "1-RTT",
+                    dcid: "8a3f9104",
+                    packetNumber: 4,
+                    frames: [
+                      {
+                        type: "STREAM",
+                        streamId: 4,
+                        typeCode: 8,
+                        data: "[WEBP Image Chunk 1]",
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+          { lost: true },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "STREAM 4 LOST · ZERO IMPACT ON STREAM 0",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Independent Stream Retransmission",
+      desc: "Only missing stream data is resent with new packet number",
+      detail:
+        "Client acknowledges Stream 0 with a QUIC ACK frame. Server detects missing packet #4 and retransmits Stream 4 data under a NEW packet number (#5). QUIC never reuses packet numbers.",
+      facts: [
+        ["QUIC ACK", "Stream 0 confirmed"],
+        ["New Packet Number", "#5 (Prevents ACK ambiguity)"],
+        ["Stream 4 Offset", "0 (Original bytes resent)"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "green",
+          "QUIC ACK",
+          ["ACK Packet #3 (Stream 0)", "NACK Packet #4 (Stream 4)"],
+          {
+            time: "0.068s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "QUIC",
+            info: "1-RTT, ACK: Largest Acked=3",
+            len: "64 B",
+            wire: {
+              udp: {
+                sport: 50443,
+                dport: 443,
+                data: {
+                  quic: {
+                    isLong: false,
+                    packetType: "1-RTT",
+                    dcid: "8a3f9104",
+                    packetNumber: 3,
+                    frames: [
+                      {
+                        type: "ACK",
+                        typeCode: 2,
+                        note: "Acknowledges packet #3",
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "blue",
+          "STREAM 4 RETRANSMIT",
+          ["Image Data Resent", "New Packet #5"],
+          {
+            time: "0.086s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP/3",
+            info: "1-RTT, Stream: 4 (Packet #5)",
+            len: "1240 B",
+            wire: {
+              udp: {
+                sport: 443,
+                dport: 50443,
+                data: {
+                  quic: {
+                    isLong: false,
+                    packetType: "1-RTT",
+                    dcid: "8a3f9104",
+                    packetNumber: 5,
+                    frames: [
+                      {
+                        type: "STREAM",
+                        streamId: 4,
+                        typeCode: 8,
+                        data: "[WEBP Image Chunk 1]",
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "web",
+          text: "QUIC ACK & STREAM 4 RETRANSMITTED",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Network Switch & Migration",
+      desc: "Connection persists across IP change from Wi-Fi to 4G",
+      detail:
+        "Client laptop leaves Wi-Fi and connects to 4G Cellular (IP changes from 192.168.1.105 to 10.42.18.90). In TCP this would crash the connection. QUIC sends PATH_CHALLENGE using the same Connection ID and migrates seamlessly!",
+      facts: [
+        ["Old Client IP", "192.168.1.105 (Wi-Fi)"],
+        ["New Client IP", "10.42.18.90 (Cellular)"],
+        ["Connection ID", "0x8a3f9104 (Unchanged)"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "rose",
+          "PATH_CHALLENGE",
+          [
+            "Client IP changed to 10.42.18.90",
+            "PATH_CHALLENGE (CID 0x8a3f9104)",
+          ],
+          {
+            time: "0.110s",
+            src: "10.42.18.90",
+            dst: "93.184.216.34",
+            proto: "QUIC",
+            info: "1-RTT, PATH_CHALLENGE Data=0x9f2a41c8",
+            len: "72 B",
+            wire: {
+              udp: {
+                sport: 50443,
+                dport: 443,
+                data: {
+                  quic: {
+                    isLong: false,
+                    packetType: "1-RTT",
+                    dcid: "8a3f9104",
+                    packetNumber: 6,
+                    frames: [
+                      {
+                        type: "PATH_CHALLENGE",
+                        typeCode: 26,
+                        data: "0x9f2a41c8",
+                        note: "Validates new network path",
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "teal",
+          "PATH_RESPONSE",
+          ["Path validated", "Connection active on 4G"],
+          {
+            time: "0.126s",
+            src: "93.184.216.34",
+            dst: "10.42.18.90",
+            proto: "QUIC",
+            info: "1-RTT, PATH_RESPONSE Data=0x9f2a41c8",
+            len: "72 B",
+            wire: {
+              udp: {
+                sport: 443,
+                dport: 50443,
+                data: {
+                  quic: {
+                    isLong: false,
+                    packetType: "1-RTT",
+                    dcid: "8a3f9104",
+                    packetNumber: 7,
+                    frames: [
+                      {
+                        type: "PATH_RESPONSE",
+                        typeCode: 27,
+                        data: "0x9f2a41c8",
+                        note: "Path migration verified",
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "CONNECTION MIGRATED (WIFI → 4G)",
+          tone: "teal",
+        },
+      ],
+    },
+  ],
+};
+
+const lessonWs = {
+  id: "ws",
+  name: "WebSocket",
+  title: "Bidirectional Full-Duplex Web Streams",
+  layer: 7,
+  nodes: ["client", "router", "internet", "web"],
+  latency: {
+    "client-web": 0.014,
+    "client-router": 0.002,
+    "router-web": 0.012,
+    "client-internet": 0.008,
+    "internet-web": 0.006,
+  },
+  legend: [
+    ["green", "Upgrade (HTTP 101)"],
+    ["amber", "Client Frame (Masked)"],
+    ["violet", "Server Frame (Unmasked)"],
+    ["blue", "Ping / Pong"],
+    ["rose", "Loss / Reconnect"],
+  ],
+  overview: {
+    full: "WebSocket Protocol",
+    description:
+      "WebSocket provides persistent, full-duplex communication over a single TCP connection. Initiated with an HTTP/1.1 Upgrade handshake, either side can send low-overhead text or binary frames at any time.",
+    facts: [
+      ["Layer", "Application (Layer 7)"],
+      ["Default Port", "80 (ws) / 443 (wss)"],
+      ["Transport", "TCP / TLS"],
+      ["Framing", "Minimal 2–10 byte binary frame"],
+      ["Client Masking", "Mandatory 4-byte XOR mask"],
+      ["Defined In", "RFC 6455"],
+    ],
+  },
+  outro: {
+    title: "Real-Time Stream Maintained",
+    desc: "Sub-millisecond messaging and heartbeat recovery",
+    text: "WebSocket transformed an HTTP connection into a continuous two-way stream. Client masking protected intermediary caches, heartbeat pings detected silent disconnects, and exponential backoff restored the link.",
+    facts: [
+      ["Framing Overhead", "2 to 6 bytes per message"],
+      ["Directionality", "True full-duplex"],
+      ["Heartbeat Check", "Ping / Pong keep-alive"],
+      ["Close Handshake", "Clean code 1000 closure"],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "WebSocket Upgrade Handshake",
+      desc: "HTTP/1.1 101 Switching Protocols upgrade",
+      detail:
+        "Client sends an HTTP/1.1 GET with Upgrade: websocket and a random base64 Sec-WebSocket-Key. Server computes the SHA-1 response hash and returns HTTP 101 Switching Protocols.",
+      facts: [
+        ["Handshake Request", "GET /chat (Upgrade: websocket)"],
+        ["Handshake Response", "HTTP/1.1 101 Switching Protocols"],
+        ["Key Negotiation", "Sec-WebSocket-Accept verified"],
+      ],
+      events: [
+        { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+        u(
+          "client",
+          "web",
+          "green",
+          "GET /chat (UPGRADE)",
+          ["Upgrade: websocket", "Sec-WebSocket-Key"],
+          {
+            time: "0.000s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP",
+            info: "GET /chat HTTP/1.1 [Upgrade: websocket]",
+            len: "240 B",
+            wire: {
+              tcp: {
+                sport: 52412,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  text: [
+                    "GET /chat HTTP/1.1",
+                    "Host: example.com",
+                    "Upgrade: websocket",
+                    "Connection: Upgrade",
+                    "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==",
+                  ],
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "green",
+          "101 SWITCHING",
+          ["HTTP/1.1 101 Switching Protocols", "Connection: Upgrade"],
+          {
+            time: "0.014s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP",
+            info: "HTTP/1.1 101 Switching Protocols",
+            len: "180 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52412,
+                flags: "PA",
+                data: {
+                  text: [
+                    "HTTP/1.1 101 Switching Protocols",
+                    "Upgrade: websocket",
+                    "Connection: Upgrade",
+                    "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=",
+                  ],
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "UPGRADED TO WEBSOCKET",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Client Masked Frame",
+      desc: "Client frame XOR-masked for proxy cache security",
+      detail:
+        "Client sends text 'Hello Server!'. Under RFC 6455, every client-to-server frame MUST be XOR masked using a 4-byte random key to prevent malicious cache poisoning on transparent proxies.",
+      facts: [
+        ["Opcode", "0x1 (Text Frame)"],
+        ["Masked Flag", "1 (4-byte XOR key)"],
+        ["Mask Key", "0x37 0xfa 0x21 0x3d"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "amber",
+          "WS TEXT (MASKED)",
+          ["Opcode: 0x1 (Text)", "Payload: 'Hello Server!' (Masked)"],
+          {
+            time: "0.030s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "WebSocket",
+            info: "WebSocket Text [Masked] (13 bytes)",
+            len: "73 B",
+            wire: {
+              tcp: {
+                sport: 52412,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  ws: {
+                    fin: 1,
+                    opcode: 1,
+                    opcodeName: "Text",
+                    masked: 1,
+                    length: 13,
+                    maskKey: [55, 250, 33, 61],
+                    text: "Hello Server!",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "web",
+          text: "CLIENT FRAME: XOR-MASKED",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Server Unmasked Broadcast",
+      desc: "Server pushes real-time event to client",
+      detail:
+        "Server pushes an asynchronous event without being prompted. Server-to-client frames are NEVER masked, keeping overhead to just 2 bytes.",
+      facts: [
+        ["Direction", "Server to Client (Push)"],
+        ["Masked Flag", "0 (Unmasked)"],
+        ["Frame Overhead", "2 bytes"],
+      ],
+      events: [
+        u(
+          "web",
+          "client",
+          "violet",
+          "WS TEXT (UNMASKED)",
+          ["Opcode: 0x1 (Text)", "User Alice joined room"],
+          {
+            time: "0.046s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "WebSocket",
+            info: "WebSocket Text (22 bytes)",
+            len: "82 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52412,
+                flags: "PA",
+                data: {
+                  ws: {
+                    fin: 1,
+                    opcode: 1,
+                    opcodeName: "Text",
+                    masked: 0,
+                    length: 22,
+                    text: "User Alice joined room",
+                  },
+                },
+              },
+            },
+          },
+        ),
+      ],
+    },
+    {
+      title: "Heartbeat Ping Loss",
+      desc: "Ping packet lost, triggering heartbeat timeout",
+      detail:
+        "To verify the TCP connection is still alive through NATs and firewalls, client sends a Ping frame (opcode 0x9). The router drops it, triggering a client heartbeat timeout.",
+      facts: [
+        ["Ping Opcode", "0x9 (Control Frame)"],
+        ["Status", "LOST IN TRANSIT"],
+        ["Client Action", "Ping timer expires"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "blue",
+          "PING (0x9)",
+          ["Opcode: 0x9 (Ping)", "Keep-alive heartbeat"],
+          {
+            time: "0.065s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "WebSocket",
+            info: "WebSocket Ping [Masked]",
+            len: "60 B",
+            wire: {
+              tcp: {
+                sport: 52412,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  ws: {
+                    fin: 1,
+                    opcode: 9,
+                    opcodeName: "Ping",
+                    masked: 1,
+                    length: 0,
+                    maskKey: [18, 52, 86, 120],
+                  },
+                },
+              },
+            },
+          },
+          { lost: true },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "PING LOST · HEARTBEAT TIMEOUT",
+          tone: "rose",
+        },
+      ],
+    },
+    {
+      title: "Backoff Reconnection & Clean Close",
+      desc: "Auto-reconnect followed by opcode 8 clean closure",
+      detail:
+        "Client detects dead socket, applies exponential backoff, re-establishes WebSocket, and finally closes the session cleanly with a Close frame (opcode 0x8, code 1000).",
+      facts: [
+        ["Reconnection", "Exponential backoff"],
+        ["Close Opcode", "0x8 (Close)"],
+        ["Status Code", "1000 (Normal Closure)"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "rose",
+          "CLOSE (1000)",
+          ["Opcode: 0x8 (Close)", "Code: 1000 (Normal Closure)"],
+          {
+            time: "0.095s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "WebSocket",
+            info: "WebSocket Close [Code 1000]",
+            len: "62 B",
+            wire: {
+              tcp: {
+                sport: 52412,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  ws: {
+                    fin: 1,
+                    opcode: 8,
+                    opcodeName: "Close",
+                    masked: 1,
+                    length: 2,
+                    maskKey: [10, 20, 30, 40],
+                    closeCode: 1000,
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "web",
+          text: "RECONNECTED · CLEAN CLOSE (CODE 1000)",
+          tone: "teal",
+        },
+      ],
+    },
+  ],
+};
+
+const lessonMqtt = {
+  id: "mqtt",
+  name: "MQTT",
+  title: "Lightweight IoT Publish / Subscribe",
+  layer: 7,
+  nodes: ["client", "router", "internet", "web"],
+  latency: {
+    "client-web": 0.02,
+    "client-router": 0.003,
+    "router-web": 0.017,
+    "client-internet": 0.011,
+    "internet-web": 0.009,
+  },
+  legend: [
+    ["green", "CONNECT / CONNACK"],
+    ["blue", "SUBSCRIBE / SUBACK"],
+    ["amber", "PUBLISH (QoS 1)"],
+    ["violet", "PUBACK"],
+    ["rose", "Loss / Retransmit (DUP=1)"],
+  ],
+  overview: {
+    full: "Message Queuing Telemetry Transport",
+    description:
+      "MQTT is an ultra-lightweight publish/subscribe messaging protocol designed for battery-powered IoT devices and high-latency or constrained networks. It features a tiny 2-byte header, 3 QoS delivery guarantees, and a Last Will mechanism.",
+    facts: [
+      ["Layer", "Application (Layer 7)"],
+      ["Default Port", "1883 (plain) / 8883 (TLS)"],
+      ["Transport", "TCP"],
+      ["Pattern", "Publish / Subscribe via Broker"],
+      ["QoS Levels", "0 (At most once), 1 (At least once), 2 (Exactly once)"],
+      ["Defined In", "OASIS MQTT v3.1.1, v5.0"],
+    ],
+  },
+  outro: {
+    title: "IoT Telemetry Stream Complete",
+    desc: "Resilient telemetry with QoS 1 guarantees",
+    text: "The IoT sensor connected with CleanSession=0 and published sensor readings. When PUBACK was lost, the client retransmitted with DUP=1 to guarantee delivery. Last Will and Testament ensured instant alert on broker disconnection.",
+    facts: [
+      ["Header Overhead", "As low as 2 bytes"],
+      ["Delivery Guarantee", "QoS 1 (PUBACK with DUP retry)"],
+      ["State Persistence", "CleanSession=0 (Broker remembers state)"],
+      ["Offline Alert", "LWT (Last Will and Testament)"],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "MQTT CONNECT & CONNACK",
+      desc: "Sensor connects with CleanSession=0 and Last Will",
+      detail:
+        "IoT sensor opens TCP connection to broker on port 1883. It sends CONNECT with CleanSession=0 (resumes saved subscriptions) and registers a Last Will and Testament (LWT) topic.",
+      facts: [
+        ["Client ID", "sensor-node-01"],
+        ["CleanSession", "0 (Persistent Session)"],
+        ["Keep Alive", "60 seconds"],
+      ],
+      events: [
+        { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+        u(
+          "client",
+          "web",
+          "green",
+          "CONNECT",
+          [
+            "Client ID: sensor-node-01",
+            "CleanSession: 0, Will: status/sensor-01",
+          ],
+          {
+            time: "0.000s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "MQTT",
+            info: "Connect Command [sensor-node-01]",
+            len: "92 B",
+            wire: {
+              tcp: {
+                sport: 52414,
+                dport: 1883,
+                flags: "PA",
+                data: {
+                  mqtt: {
+                    type: "CONNECT",
+                    typeCode: 1,
+                    flags: 0,
+                    remainingLength: 38,
+                    topic: "status/sensor-01",
+                    payload: "Client: sensor-node-01 (Will: offline)",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "green",
+          "CONNACK",
+          ["Connection Accepted", "Session Present: 1"],
+          {
+            time: "0.020s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "MQTT",
+            info: "Connect Ack [Session Present: 1, Return: 0]",
+            len: "64 B",
+            wire: {
+              tcp: {
+                sport: 1883,
+                dport: 52414,
+                flags: "PA",
+                data: {
+                  mqtt: {
+                    type: "CONNACK",
+                    typeCode: 2,
+                    flags: 0,
+                    remainingLength: 2,
+                    payload: "Return Code: 0 (Accepted)",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "MQTT CONNECTED: SESSION RESTORED",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "SUBSCRIBE to Commands",
+      desc: "Subscribes with QoS 1 acknowledgment",
+      detail:
+        "Sensor subscribes to topic 'commands/node-01' with QoS 1. Broker responds with SUBACK granting QoS 1.",
+      facts: [
+        ["Topic", "commands/node-01"],
+        ["QoS Level", "1 (At least once)"],
+        ["Packet ID", "1"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "blue",
+          "SUBSCRIBE",
+          ["Topic: commands/node-01", "QoS: 1, Packet ID: 1"],
+          {
+            time: "0.042s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "MQTT",
+            info: "Subscribe Request [commands/node-01 QoS: 1]",
+            len: "78 B",
+            wire: {
+              tcp: {
+                sport: 52414,
+                dport: 1883,
+                flags: "PA",
+                data: {
+                  mqtt: {
+                    type: "SUBSCRIBE",
+                    typeCode: 8,
+                    flags: 2,
+                    remainingLength: 24,
+                    topic: "commands/node-01",
+                    packetId: 1,
+                    qos: 1,
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "blue",
+          "SUBACK",
+          ["Packet ID: 1", "Granted QoS: 1"],
+          {
+            time: "0.062s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "MQTT",
+            info: "Subscribe Ack [Packet ID: 1, QoS: 1]",
+            len: "65 B",
+            wire: {
+              tcp: {
+                sport: 1883,
+                dport: 52414,
+                flags: "PA",
+                data: {
+                  mqtt: {
+                    type: "SUBACK",
+                    typeCode: 9,
+                    flags: 0,
+                    remainingLength: 3,
+                    packetId: 1,
+                    payload: "Granted QoS: [1]",
+                  },
+                },
+              },
+            },
+          },
+        ),
+      ],
+    },
+    {
+      title: "QoS 1 PUBLISH & PUBACK Loss",
+      desc: "Sensor reading published, PUBACK dropped in network",
+      detail:
+        "Sensor publishes telemetry (temp=24.5C). Under QoS 1, the broker sends a PUBACK, but the packet is dropped by cellular packet loss.",
+      facts: [
+        ["Topic", "telemetry/temp"],
+        ["Payload", "{'temp': 24.5, 'battery': 98}"],
+        ["PUBACK Status", "LOST IN NETWORK"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "amber",
+          "PUBLISH (QoS 1)",
+          ["Topic: telemetry/temp", "Packet ID: 42, QoS 1"],
+          {
+            time: "0.085s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "MQTT",
+            info: "Publish Message [telemetry/temp QoS: 1]",
+            len: "96 B",
+            wire: {
+              tcp: {
+                sport: 52414,
+                dport: 1883,
+                flags: "PA",
+                data: {
+                  mqtt: {
+                    type: "PUBLISH",
+                    typeCode: 3,
+                    flags: 2,
+                    qos: 1,
+                    remainingLength: 42,
+                    topic: "telemetry/temp",
+                    packetId: 42,
+                    payload: "{'temp': 24.5, 'battery': 98}",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "violet",
+          "PUBACK (ID 42)",
+          ["PUBACK Packet ID: 42", "Confirmation of receipt"],
+          {
+            time: "0.105s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "MQTT",
+            info: "Publish Ack [Packet ID: 42]",
+            len: "64 B",
+            wire: {
+              tcp: {
+                sport: 1883,
+                dport: 52414,
+                flags: "PA",
+                data: {
+                  mqtt: {
+                    type: "PUBACK",
+                    typeCode: 4,
+                    flags: 0,
+                    remainingLength: 2,
+                    packetId: 42,
+                  },
+                },
+              },
+            },
+          },
+          { lost: true },
+        ),
+        {
+          type: "note",
+          at: "internet",
+          text: "PUBACK DROPPED · ACK TIMEOUT",
+          tone: "amber",
+        },
+      ],
+    },
+    {
+      title: "DUP=1 Retransmission",
+      desc: "Guaranteed delivery via retransmission with duplicate flag",
+      detail:
+        "Sensor's ACK timer expires. It retransmits the same PUBLISH message with DUP=1 set. The broker receives it and acknowledges with a fresh PUBACK.",
+      facts: [
+        ["DUP Flag", "1 (Duplicate Retransmit)"],
+        ["Packet ID", "42"],
+        ["Result", "PUBACK safely received"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "rose",
+          "PUBLISH (DUP=1)",
+          ["Retransmit with DUP=1", "Packet ID: 42"],
+          {
+            time: "0.140s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "MQTT",
+            info: "Publish Message [DUP=1, ID: 42]",
+            len: "96 B",
+            wire: {
+              tcp: {
+                sport: 52414,
+                dport: 1883,
+                flags: "PA",
+                data: {
+                  mqtt: {
+                    type: "PUBLISH",
+                    typeCode: 3,
+                    flags: 10,
+                    dup: true,
+                    qos: 1,
+                    remainingLength: 42,
+                    topic: "telemetry/temp",
+                    packetId: 42,
+                    payload: "{'temp': 24.5, 'battery': 98}",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "violet",
+          "PUBACK (ID 42)",
+          ["PUBACK Received", "Message Delivered"],
+          {
+            time: "0.160s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "MQTT",
+            info: "Publish Ack [Packet ID: 42]",
+            len: "64 B",
+            wire: {
+              tcp: {
+                sport: 1883,
+                dport: 52414,
+                flags: "PA",
+                data: {
+                  mqtt: {
+                    type: "PUBACK",
+                    typeCode: 4,
+                    flags: 0,
+                    remainingLength: 2,
+                    packetId: 42,
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "PUBLISH RETRANSMITTED (DUP=1) · PUBACK RECEIVED",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Broker Last Will Broadcast",
+      desc: "Broker detects abrupt sensor failure and broadcasts LWT",
+      detail:
+        "Sensor battery dies abruptly. The broker notices missing PINGREQ keep-alives and broadcasts the sensor's registered Last Will ('offline') to all subscribers.",
+      facts: [
+        ["Failure Cause", "Dead battery (Silent disconnect)"],
+        ["LWT Topic", "status/sensor-01"],
+        ["LWT Message", "'offline'"],
+      ],
+      events: [
+        {
+          type: "note",
+          at: "web",
+          text: "BROKER BROADCASTS LAST WILL (LWT)",
+          tone: "rose",
+        },
+      ],
+    },
+  ],
+};
+
+const lessonSse = {
+  id: "sse",
+  name: "SSE",
+  title: "Server-Sent Events Streaming",
+  layer: 7,
+  nodes: ["client", "router", "internet", "web"],
+  latency: {
+    "client-web": 0.016,
+    "client-router": 0.002,
+    "router-web": 0.014,
+    "client-internet": 0.009,
+    "internet-web": 0.007,
+  },
+  legend: [
+    ["green", "HTTP Connection"],
+    ["violet", "Event Stream Pushes"],
+    ["amber", "Heartbeat Comment (:ping)"],
+    ["rose", "Connection Drop / Auto-Resume"],
+  ],
+  overview: {
+    full: "Server-Sent Events",
+    description:
+      "Server-Sent Events (SSE) allows a server to push asynchronous text updates to the client over a persistent HTTP connection. Browsers use the built-in EventSource API, which includes automatic reconnection and stream resumption via Last-Event-ID.",
+    facts: [
+      ["Layer", "Application (Layer 7)"],
+      ["MIME Type", "text/event-stream"],
+      ["Transport", "HTTP/1.1 or HTTP/2"],
+      ["Direction", "Unidirectional (Server to Client)"],
+      ["Resilience", "Native browser auto-reconnect with Last-Event-ID"],
+      ["Standard", "HTML Living Standard / W3C"],
+    ],
+  },
+  outro: {
+    title: "Event Stream Streamed & Resumed",
+    desc: "Unidirectional event flow with zero-loss resumption",
+    text: "The server pushed real-time ticker events over a single HTTP stream. When a middlebox dropped the idle connection, the browser EventSource reconnected after 3 seconds with Last-Event-ID: 101, recovering missed events automatically.",
+    facts: [
+      ["Format", "text/event-stream lines (id, event, data)"],
+      ["Directionality", "Unidirectional (server -> browser)"],
+      ["Middlebox Keep-Alive", "Periodic colon comments (:keepalive)"],
+      ["Recovery Mechanism", "Last-Event-ID HTTP header"],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "SSE Stream Initiation",
+      desc: "HTTP GET with text/event-stream response",
+      detail:
+        "Client invokes new EventSource('/events'). It sends an HTTP GET with Accept: text/event-stream. Server responds with 200 OK and Content-Type: text/event-stream.",
+      facts: [
+        ["Accept", "text/event-stream"],
+        ["Cache-Control", "no-cache"],
+        ["Transfer-Encoding", "chunked"],
+      ],
+      events: [
+        { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+        u(
+          "client",
+          "web",
+          "green",
+          "GET /events",
+          ["Accept: text/event-stream", "Cache-Control: no-cache"],
+          {
+            time: "0.000s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP",
+            info: "GET /events HTTP/1.1 [Accept: text/event-stream]",
+            len: "210 B",
+            wire: {
+              tcp: {
+                sport: 52416,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  text: [
+                    "GET /events HTTP/1.1",
+                    "Host: example.com",
+                    "Accept: text/event-stream",
+                    "Cache-Control: no-cache",
+                  ],
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "green",
+          "200 OK (text/event-stream)",
+          ["Content-Type: text/event-stream", "Connection: keep-alive"],
+          {
+            time: "0.016s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP",
+            info: "HTTP/1.1 200 OK [Content-Type: text/event-stream]",
+            len: "245 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52416,
+                flags: "PA",
+                data: {
+                  sse: {
+                    headers: [
+                      "HTTP/1.1 200 OK",
+                      "Content-Type: text/event-stream",
+                      "Cache-Control: no-cache",
+                      "Connection: keep-alive",
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "STREAM OPENED: text/event-stream",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Real-Time Event Stream",
+      desc: "Server pushes structured events with ID and data",
+      detail:
+        "Server pushes events formatted as lines (id, event, data) delimited by double newlines. Client browser fires onmessage handlers.",
+      facts: [
+        ["Event 1 ID", "100 (Trade AAPL $198.50)"],
+        ["Event 2 ID", "101 (Trade GOOG $175.20)"],
+        ["Format", "Plain text lines"],
+      ],
+      events: [
+        u(
+          "web",
+          "client",
+          "violet",
+          "EVENT id:100",
+          ["id: 100", "event: trade", "data: AAPL $198.5"],
+          {
+            time: "0.035s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "SSE",
+            info: "SSE Event id: 100 (trade)",
+            len: "128 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52416,
+                flags: "PA",
+                data: {
+                  sse: {
+                    id: 100,
+                    event: "trade",
+                    data: "{'sym':'AAPL','p':198.5}",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "violet",
+          "EVENT id:101",
+          ["id: 101", "event: trade", "data: GOOG $175.2"],
+          {
+            time: "0.055s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "SSE",
+            info: "SSE Event id: 101 (trade)",
+            len: "128 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52416,
+                flags: "PA",
+                data: {
+                  sse: {
+                    id: 101,
+                    event: "trade",
+                    data: "{'sym':'GOOG','p':175.2}",
+                  },
+                },
+              },
+            },
+          },
+        ),
+      ],
+    },
+    {
+      title: "Proxy Idle Drop",
+      desc: "Middlebox drops idle connection",
+      detail:
+        "During a quiet trading period with no price changes, an intermediate proxy times out the idle TCP connection and drops the socket.",
+      facts: [
+        ["Cause", "NAT / Firewall idle timeout"],
+        ["Socket State", "Abruptly terminated"],
+        ["Client State", "Detects connection drop"],
+      ],
+      events: [
+        {
+          type: "note",
+          at: "internet",
+          text: "PROXY DROP: CONNECTION TERMINATED",
+          tone: "rose",
+        },
+      ],
+    },
+    {
+      title: "EventSource Auto-Resume",
+      desc: "Native reconnect resuming from Last-Event-ID: 101",
+      detail:
+        "The browser's native EventSource automatically reconnects after a short backoff, attaching the HTTP header Last-Event-ID: 101. The server resumes immediately from ID: 102 with zero data loss!",
+      facts: [
+        ["Header Sent", "Last-Event-ID: 101"],
+        ["Resume Event", "ID: 102 (MSFT $420.10)"],
+        ["Data Lost", "0 bytes"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "green",
+          "GET /events (RESUME)",
+          ["Last-Event-ID: 101", "Automatic reconnect"],
+          {
+            time: "0.095s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP",
+            info: "GET /events [Last-Event-ID: 101]",
+            len: "235 B",
+            wire: {
+              tcp: {
+                sport: 52416,
+                dport: 443,
+                flags: "PA",
+                data: {
+                  text: [
+                    "GET /events HTTP/1.1",
+                    "Host: example.com",
+                    "Accept: text/event-stream",
+                    "Last-Event-ID: 101",
+                  ],
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "violet",
+          "EVENT id:102",
+          ["id: 102", "event: trade", "data: MSFT $420.1"],
+          {
+            time: "0.115s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "SSE",
+            info: "SSE Event id: 102 (trade)",
+            len: "128 B",
+            wire: {
+              tcp: {
+                sport: 443,
+                dport: 52416,
+                flags: "PA",
+                data: {
+                  sse: {
+                    id: 102,
+                    event: "trade",
+                    data: "{'sym':'MSFT','p':420.1}",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "STREAM RESUMED FROM ID: 101",
+          tone: "green",
+        },
+      ],
+    },
+  ],
+};
+
+const lessonChunked = {
+  id: "chunked",
+  name: "Chunked",
+  title: "Dynamic Chunked Streaming",
+  layer: 7,
+  nodes: ["client", "router", "internet", "web"],
+  latency: {
+    "client-web": 0.018,
+    "client-router": 0.002,
+    "router-web": 0.016,
+    "client-internet": 0.01,
+    "internet-web": 0.008,
+  },
+  legend: [
+    ["amber", "HTTP Request"],
+    ["violet", "Chunked Data (Hex Sizes)"],
+    ["rose", "Loss / Mid-Stream Error"],
+    ["green", "Terminal Chunk & Trailer"],
+  ],
+  overview: {
+    full: "HTTP Chunked Transfer Encoding",
+    description:
+      "Chunked transfer encoding is a streaming mechanism in HTTP/1.1 where data is sent as a series of size-prefixed chunks rather than needing an upfront Content-Length header. This enables immediate streaming for database results, file generation, and LLM responses.",
+    facts: [
+      ["Layer", "Application (Layer 7)"],
+      ["Header", "Transfer-Encoding: chunked"],
+      ["Transport", "TCP"],
+      ["Chunk Format", "<hex size>\r\n<data>\r\n"],
+      ["Termination", "0\r\n\r\n (zero-length chunk)"],
+      ["Defined In", "RFC 9112 (Section 7.1)"],
+    ],
+  },
+  outro: {
+    title: "Dynamic Stream Completed",
+    desc: "Streaming data without upfront Content-Length",
+    text: "The server began transmitting immediately as data was generated. When an intermediate chunk was lost, TCP retransmitted to maintain stream integrity. The stream ended with a terminal zero-byte chunk and a trailing cryptographic checksum.",
+    facts: [
+      ["Memory Buffer", "Zero: stream chunks as generated"],
+      ["Delimiter", "Hex length + CRLF per chunk"],
+      ["Trailer Support", "Post-stream checksums (X-SHA256)"],
+      ["Failure Mode", "TCP connection teardown if stream aborts"],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "Chunked Transfer Request",
+      desc: "Response with Transfer-Encoding: chunked",
+      detail:
+        "Client requests an export of dynamically generated user records. Since the server does not know the final payload size, it responds with Transfer-Encoding: chunked instead of Content-Length.",
+      facts: [
+        ["Method", "GET /export/records"],
+        ["Encoding", "Transfer-Encoding: chunked"],
+        ["Trailer Promised", "Trailer: X-Checksum-SHA256"],
+      ],
+      events: [
+        { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+        u(
+          "client",
+          "web",
+          "amber",
+          "GET /export/records",
+          ["GET /export/records HTTP/1.1", "Host: example.com"],
+          {
+            time: "0.000s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP",
+            info: "GET /export/records HTTP/1.1",
+            len: "160 B",
+            wire: {
+              tcp: {
+                sport: 52418,
+                dport: 80,
+                flags: "PA",
+                data: {
+                  text: ["GET /export/records HTTP/1.1", "Host: example.com"],
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "green",
+          "200 OK (chunked)",
+          ["Transfer-Encoding: chunked", "Trailer: X-Checksum-SHA256"],
+          {
+            time: "0.018s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP",
+            info: "HTTP/1.1 200 OK [Transfer-Encoding: chunked]",
+            len: "215 B",
+            wire: {
+              tcp: {
+                sport: 80,
+                dport: 52418,
+                flags: "PA",
+                data: {
+                  text: [
+                    "HTTP/1.1 200 OK",
+                    "Transfer-Encoding: chunked",
+                    "Trailer: X-Checksum-SHA256",
+                  ],
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "CHUNKED STREAM INITIATED",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Hex-Sized Data Chunks",
+      desc: "Server streams data without upfront Content-Length",
+      detail:
+        "The server sends the first 26 bytes of JSON preceded by hex size 1A (26 in decimal) and CRLF. The client parses chunk 1 immediately while the database query continues.",
+      facts: [
+        ["Hex Size", "1A (26 bytes)"],
+        ["Chunk Payload", "{'user':'Alice','score':95}"],
+        ["Framing", "<hex>\r\n<data>\r\n"],
+      ],
+      events: [
+        u(
+          "web",
+          "client",
+          "violet",
+          "CHUNK 1 (1A)",
+          ["Chunk size: 1A (26 bytes)", "{'user':'Alice','score':95}"],
+          {
+            time: "0.038s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP",
+            info: "HTTP Chunked: 1A bytes (26)",
+            len: "90 B",
+            wire: {
+              tcp: {
+                sport: 80,
+                dport: 52418,
+                flags: "PA",
+                data: {
+                  chunked: {
+                    hexSize: "1A",
+                    byteCount: 26,
+                    data: "{'user':'Alice','score':95}",
+                  },
+                },
+              },
+            },
+          },
+        ),
+      ],
+    },
+    {
+      title: "Intermediate Chunk Loss",
+      desc: "Lost chunk recovered by TCP transport",
+      detail:
+        "Server sends Chunk 2 (size 24 hex = 36 bytes), but the packet is lost. The client TCP layer stalls the application stream, triggers a retransmission via SACK, and restores byte order.",
+      facts: [
+        ["Chunk 2 Size", "24 (36 bytes)"],
+        ["Status", "LOST IN TRANSIT"],
+        ["Recovery", "TCP SACK retransmission"],
+      ],
+      events: [
+        u(
+          "web",
+          "client",
+          "violet",
+          "CHUNK 2 (24)",
+          ["Chunk size: 24 (36 bytes)", "{'user':'Bob','score':88}"],
+          {
+            time: "0.060s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP",
+            info: "HTTP Chunked: 24 bytes (36)",
+            len: "100 B",
+            wire: {
+              tcp: {
+                sport: 80,
+                dport: 52418,
+                flags: "PA",
+                data: {
+                  chunked: {
+                    hexSize: "24",
+                    byteCount: 36,
+                    data: "{'user':'Bob','score':88}",
+                  },
+                },
+              },
+            },
+          },
+          { lost: true },
+        ),
+        {
+          type: "note",
+          at: "internet",
+          text: "CHUNK 2 LOST · RETRANSMITTED",
+          tone: "amber",
+        },
+        u(
+          "web",
+          "client",
+          "violet",
+          "CHUNK 2 (RESENT)",
+          ["Chunk 2 recovered", "Delivered to client"],
+          {
+            time: "0.090s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP",
+            info: "HTTP Chunked: 24 bytes (Resent)",
+            len: "100 B",
+            wire: {
+              tcp: {
+                sport: 80,
+                dport: 52418,
+                flags: "PA",
+                data: {
+                  chunked: {
+                    hexSize: "24",
+                    byteCount: 36,
+                    data: "{'user':'Bob','score':88}",
+                  },
+                },
+              },
+            },
+          },
+        ),
+      ],
+    },
+    {
+      title: "Mid-Stream Database Abort",
+      desc: "Server tears down connection on fatal streaming error",
+      detail:
+        "In chunked encoding, HTTP headers (200 OK) have already been sent! If the database crashes mid-stream, the server CANNOT change status to 500. It must abort the TCP connection with TCP RST to signal payload corruption.",
+      facts: [
+        ["Limitation", "Headers already committed as 200 OK"],
+        ["Error Mechanism", "TCP RST abruptly tears down stream"],
+        ["Client Defense", "Recognizes truncated body"],
+      ],
+      events: [
+        {
+          type: "note",
+          at: "web",
+          text: "DATABASE ABORT · TCP RST ERROR HANDLING",
+          tone: "rose",
+        },
+      ],
+    },
+    {
+      title: "Terminal Zero Chunk & Trailer",
+      desc: "Stream ends with 0\r\n and cryptographic checksum",
+      detail:
+        "On successful completion, server emits chunk size 0\r\n followed by trailing headers containing a SHA-256 integrity hash of the streamed content.",
+      facts: [
+        ["Terminal Chunk", "0\r\n"],
+        ["Trailer Header", "X-Checksum-SHA256"],
+        ["Integrity", "Cryptographic verification of streamed stream"],
+      ],
+      events: [
+        u(
+          "web",
+          "client",
+          "green",
+          "CHUNK 0 + TRAILER",
+          ["Terminal chunk: 0", "X-Checksum-SHA256: 4f9a2b..."],
+          {
+            time: "0.130s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "HTTP",
+            info: "HTTP Chunked: 0 bytes + Trailers",
+            len: "145 B",
+            wire: {
+              tcp: {
+                sport: 80,
+                dport: 52418,
+                flags: "PA",
+                data: {
+                  chunked: {
+                    hexSize: "0",
+                    byteCount: 0,
+                    trailers: ["X-Checksum-SHA256: 4f9a2b719c8d3e..."],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "STREAM TERMINATED · CHECKSUM VERIFIED",
+          tone: "green",
+        },
+      ],
+    },
+  ],
+};
+
+const lessonGrpc = {
+  id: "grpc",
+  name: "gRPC",
+  title: "High-Performance RPC over HTTP/2",
+  layer: 7,
+  nodes: ["client", "router", "internet", "web"],
+  latency: {
+    "client-web": 0.015,
+    "client-router": 0.002,
+    "router-web": 0.013,
+    "client-internet": 0.008,
+    "internet-web": 0.007,
+  },
+  legend: [
+    ["green", "Unary RPC Call"],
+    ["violet", "gRPC Protobuf Response"],
+    ["rose", "Trailers: Error Status 5 (NOT_FOUND)"],
+    ["amber", "Deadline Exceeded (Timeout)"],
+  ],
+  overview: {
+    full: "gRPC Remote Procedure Calls",
+    description:
+      "gRPC is a high-performance open-source RPC framework created by Google. Built on HTTP/2 transport and Protocol Buffers (Protobuf) binary serialization, it provides strongly-typed contracts, streaming RPCs, deadlines, and status codes in HTTP/2 trailers.",
+    facts: [
+      ["Layer", "Application (Layer 7)"],
+      ["Default Port", "50051 (or 443)"],
+      ["Transport", "HTTP/2 (Binary Framing)"],
+      ["Serialization", "Protocol Buffers (proto3)"],
+      ["Framing", "5-byte prefix (Compressed flag + Length)"],
+      ["Status Codes", "16 canonical gRPC status codes in trailers"],
+    ],
+  },
+  outro: {
+    title: "RPC Execution Complete",
+    desc: "Typed remote procedure call with trailer status",
+    text: "The client invoked a typed RPC over HTTP/2. gRPC serialized parameters with Protocol Buffers into compact binary bytes. When an error occurred, the server returned canonical status code 5 (NOT_FOUND) directly in HTTP/2 trailers without rebuilding headers.",
+    facts: [
+      ["Serialization Efficiency", "Up to 10x smaller than JSON"],
+      ["Error Propagation", "grpc-status & grpc-message in trailers"],
+      ["Deadline Support", "grpc-timeout header with RST_STREAM cancel"],
+      [
+        "Streaming Capabilities",
+        "Unary, Client/Server streaming, Bidirectional",
+      ],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "Unary gRPC Request",
+      desc: "POST /OrderService/GetOrder with Protobuf payload",
+      detail:
+        "Client invokes unary RPC GetOrder(order_id=1042). gRPC sends an HTTP/2 HEADERS frame with content-type: application/grpc and a DATA frame carrying the 5-byte length prefix and binary Protobuf payload.",
+      facts: [
+        ["RPC Method", "POST /OrderService/GetOrder"],
+        ["Content-Type", "application/grpc"],
+        ["Protobuf Tag", "Field 1 (order_id: 1042)"],
+      ],
+      events: [
+        { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+        u(
+          "client",
+          "web",
+          "green",
+          "gRPC REQUEST",
+          ["POST /OrderService/GetOrder", "order_id: 1042 (Protobuf)"],
+          {
+            time: "0.000s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "gRPC",
+            info: "gRPC Call: /OrderService/GetOrder [order_id: 1042]",
+            len: "115 B",
+            wire: {
+              tcp: {
+                sport: 52420,
+                dport: 50051,
+                flags: "PA",
+                data: {
+                  grpc: {
+                    service: "OrderService",
+                    method: "GetOrder",
+                    compressed: 0,
+                    length: 6,
+                    fields: [
+                      { tag: 1, name: "order_id", wireType: 0, val: 1042 },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "gRPC UNARY INVOCATION",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Protobuf Response & Status OK",
+      desc: "Typed response with grpc-status: 0 in trailers",
+      detail:
+        "Server processes request and returns HTTP/2 HEADERS (:status 200), DATA (Protobuf OrderResponse), and trailing HEADERS with grpc-status: 0 (OK).",
+      facts: [
+        ["Order ID", "1042"],
+        ["Status", "'SHIPPED'"],
+        ["grpc-status", "0 (OK in trailers)"],
+      ],
+      events: [
+        u(
+          "web",
+          "client",
+          "violet",
+          "gRPC RESPONSE (OK)",
+          ["OrderResponse (Protobuf)", "grpc-status: 0 (OK)"],
+          {
+            time: "0.018s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "gRPC",
+            info: "gRPC Reply: OK [grpc-status: 0]",
+            len: "148 B",
+            wire: {
+              tcp: {
+                sport: 50051,
+                dport: 52420,
+                flags: "PA",
+                data: {
+                  grpc: {
+                    service: "OrderService",
+                    method: "GetOrder",
+                    compressed: 0,
+                    length: 18,
+                    fields: [
+                      { tag: 1, name: "order_id", wireType: 0, val: 1042 },
+                      { tag: 2, name: "status", wireType: 2, val: "SHIPPED" },
+                    ],
+                    trailers: [{ name: "grpc-status", val: "0 (OK)" }],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "gRPC STATUS 0: OK",
+          tone: "green",
+        },
+      ],
+    },
+    {
+      title: "Error Status: NOT_FOUND",
+      desc: "Canonical gRPC error code 5 returned in trailers",
+      detail:
+        "Client requests non-existent order #9999. In gRPC, the HTTP status is still 200 OK, but the trailing headers convey canonical status 5 (NOT_FOUND) with an error description.",
+      facts: [
+        ["HTTP Status", "200 (Transport OK)"],
+        ["grpc-status", "5 (NOT_FOUND)"],
+        ["grpc-message", "order 9999 does not exist"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "green",
+          "GET ORDER #9999",
+          ["POST /OrderService/GetOrder", "order_id: 9999"],
+          {
+            time: "0.040s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "gRPC",
+            info: "gRPC Call: /OrderService/GetOrder [order_id: 9999]",
+            len: "115 B",
+            wire: {
+              tcp: {
+                sport: 52420,
+                dport: 50051,
+                flags: "PA",
+                data: {
+                  grpc: {
+                    service: "OrderService",
+                    method: "GetOrder",
+                    compressed: 0,
+                    length: 6,
+                    fields: [
+                      { tag: 1, name: "order_id", wireType: 0, val: 9999 },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        u(
+          "web",
+          "client",
+          "rose",
+          "gRPC STATUS 5",
+          ["Trailers: grpc-status: 5", "NOT_FOUND: order not found"],
+          {
+            time: "0.058s",
+            src: "93.184.216.34",
+            dst: "192.168.1.105",
+            proto: "gRPC",
+            info: "gRPC Reply: 5 NOT_FOUND",
+            len: "130 B",
+            wire: {
+              tcp: {
+                sport: 50051,
+                dport: 52420,
+                flags: "PA",
+                data: {
+                  grpc: {
+                    service: "OrderService",
+                    method: "GetOrder",
+                    compressed: 0,
+                    length: 0,
+                    trailers: [
+                      { name: "grpc-status", val: "5 (NOT_FOUND)" },
+                      {
+                        name: "grpc-message",
+                        val: "order 9999 does not exist",
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "GRPC STATUS: 5 NOT_FOUND",
+          tone: "rose",
+        },
+      ],
+    },
+    {
+      title: "Strict Deadline Exceeded",
+      desc: "Timeout triggers client RST_STREAM and code 4 status",
+      detail:
+        "Client sets a strict deadline with grpc-timeout: 20m (20 ms). When the database query takes too long, the client cancels the call by sending HTTP/2 RST_STREAM and raises DEADLINE_EXCEEDED (code 4).",
+      facts: [
+        ["grpc-timeout", "20m (20 milliseconds)"],
+        ["Cancellation", "RST_STREAM (CANCEL)"],
+        ["Result Code", "4 (DEADLINE_EXCEEDED)"],
+      ],
+      events: [
+        u(
+          "client",
+          "web",
+          "amber",
+          "RST_STREAM (TIMEOUT)",
+          ["Deadline exceeded (20ms)", "RST_STREAM CANCEL"],
+          {
+            time: "0.115s",
+            src: "192.168.1.105",
+            dst: "93.184.216.34",
+            proto: "HTTP/2",
+            info: "RST_STREAM Stream: 1 [CANCEL]",
+            len: "64 B",
+            wire: {
+              tcp: {
+                sport: 52420,
+                dport: 50051,
+                flags: "PA",
+                data: {
+                  http2: {
+                    type: "RST_STREAM",
+                    streamId: 1,
+                    typeCode: 3,
+                    flags: 0,
+                    errorCode: 8,
+                    errorName: "CANCEL",
+                  },
+                },
+              },
+            },
+          },
+        ),
+        {
+          type: "note",
+          at: "client",
+          text: "DEADLINE EXCEEDED · TIMEOUT",
+          tone: "amber",
+        },
+      ],
+    },
+  ],
+};
+
+// === NETWORK MONITORING LESSONS (src/monitoring.js) ===
+// ==================== NETWORK MONITORING LESSONS: SNMP, NetFlow, Syslog ====================
+// This code is injected into the main bundle scope (see tools/build.py), so it can use the
+// lesson helpers defined there: u() packet event, N() time, $e() TCP connection,
+// O() TCP wire, Je() TCP handshake, be() frame length, f (laptop IP), rt (router LAN IP),
+// Ts (router WAN IP) and the byte writer class `me`.
+
+// ---------- SNMP (ASN.1 BER) ----------
+const snmpOidNames = {
+  "1.3.6.1.2.1.1.1.0": "sysDescr.0",
+  "1.3.6.1.2.1.1.3.0": "sysUpTime.0",
+  "1.3.6.1.2.1.1.4.0": "sysContact.0",
+  "1.3.6.1.2.1.1.5.0": "sysName.0",
+  "1.3.6.1.2.1.2.2.1.2": "ifDescr",
+  "1.3.6.1.2.1.2.2.1.2.1": "ifDescr.1",
+  "1.3.6.1.2.1.2.2.1.2.2": "ifDescr.2",
+  "1.3.6.1.2.1.2.2.1.2.3": "ifDescr.3",
+  "1.3.6.1.2.1.2.2.1.1.1": "ifIndex.1",
+  "1.3.6.1.2.1.31.1.1.1.6": "ifHCInOctets",
+  "1.3.6.1.2.1.31.1.1.1.6.1": "ifHCInOctets.1",
+  "1.3.6.1.2.1.31.1.1.1.6.2": "ifHCInOctets.2",
+  "1.3.6.1.2.1.31.1.1.1.10": "ifHCOutOctets",
+  "1.3.6.1.2.1.31.1.1.1.10.1": "ifHCOutOctets.1",
+  "1.3.6.1.2.1.31.1.1.1.10.2": "ifHCOutOctets.2",
+  "1.3.6.1.6.3.1.1.4.1.0": "snmpTrapOID.0",
+  "1.3.6.1.6.3.1.1.5.3": "linkDown",
+  "1.3.6.1.2.1.2.2.1.7.2": "ifAdminStatus.2",
+  "1.3.6.1.2.1.2.2.1.8.2": "ifOperStatus.2",
+  "1.3.6.1.2.1.2.2.1.1.2": "ifIndex.2",
+};
+const snmpPduTags = {
+  get: [0xa0, "GetRequest"],
+  getnext: [0xa1, "GetNextRequest"],
+  response: [0xa2, "Response"],
+  set: [0xa3, "SetRequest"],
+  getbulk: [0xa5, "GetBulkRequest"],
+  inform: [0xa6, "InformRequest"],
+  trap: [0xa7, "SNMPv2-Trap"],
+};
+const snmpErrors = ["noError", "tooBig", "noSuchName", "badValue", "readOnly", "genErr", "noAccess", "wrongType", "wrongLength", "wrongEncoding", "wrongValue", "noCreation", "inconsistentValue", "resourceUnavailable", "commitFailed", "undoFailed", "authorizationError", "notWritable"];
+const berLen = (n) => (n < 128 ? [n] : n < 256 ? [0x81, n] : [0x82, n >> 8, n & 255]);
+function berInt(v) {
+  const out = [];
+  let x = BigInt(v);
+  if (x === 0n) return [0];
+  while (x > 0n) {
+    out.unshift(Number(x & 255n));
+    x >>= 8n;
+  }
+  if (out[0] & 0x80) out.unshift(0);
+  return out;
+}
+function berOid(s) {
+  const p = s.split(".").map(Number);
+  const out = [40 * p[0] + p[1]];
+  for (const n of p.slice(2)) {
+    const b = [n & 127];
+    let x = n >>> 7;
+    while (x > 0) {
+      b.unshift((x & 127) | 128);
+      x >>>= 7;
+    }
+    out.push(...b);
+  }
+  return out;
+}
+const snmpTicks = (t) => {
+  const cs = t % 100, s = Math.floor(t / 100), d = Math.floor(s / 86400);
+  const hh = String(Math.floor((s % 86400) / 3600)).padStart(2, "0"),
+    mm = String(Math.floor((s % 3600) / 60)).padStart(2, "0"),
+    ss = String(s % 60).padStart(2, "0");
+  return `${t} (${d} d ${hh}:${mm}:${ss}.${String(cs).padStart(2, "0")})`;
+};
+const snmpOidLabel = (o) => (snmpOidNames[o] ? `${o} (${snmpOidNames[o]})` : o);
+// value: [type, v]
+function snmpValue([type, v]) {
+  const enc = new TextEncoder();
+  switch (type) {
+    case "null": return { tag: 0x05, bytes: [], show: "NULL (value asked for)" };
+    case "int": return { tag: 0x02, bytes: berInt(v), show: `INTEGER ${v}` };
+    case "str": return { tag: 0x04, bytes: [...enc.encode(v)], show: `OCTET STRING "${v}"` };
+    case "oid": return { tag: 0x06, bytes: berOid(v), show: `OID ${snmpOidLabel(v)}` };
+    case "ticks": return { tag: 0x43, bytes: berInt(v), show: `TimeTicks ${snmpTicks(v)}` };
+    case "counter64": return { tag: 0x46, bytes: berInt(v), show: `Counter64 ${Number(v).toLocaleString("en-US")}` };
+    case "endOfMibView": return { tag: 0x82, bytes: [], show: "endOfMibView (no more objects)" };
+    default: throw new Error("snmp type " + type);
+  }
+}
+function snmpTree(t) {
+  const [pduTag, pduName] = snmpPduTags[t.pdu];
+  const leaf = (tag, bytes, name, value, opts = {}) => ({ tag, bytes, name, value, opts });
+  const seq = (tag, name, value, children, opts = {}) => ({ tag, children, name, value, opts });
+  const vbs = t.varbinds.map(([oid, val, note]) => {
+    const v = snmpValue(val);
+    return seq(0x30, "Varbind", snmpOidNames[oid] || oid, [
+      leaf(0x06, berOid(oid), "Object ID (OID)", snmpOidLabel(oid), { mono: !0 }),
+      leaf(v.tag, v.bytes, "Value", v.show, { mono: !0, note }),
+    ]);
+  });
+  const bulk = t.pdu === "getbulk";
+  const errName = snmpErrors[t.errorStatus ?? 0] ?? String(t.errorStatus);
+  const pduKids = [
+    leaf(0x02, berInt(t.requestId), "Request ID", t.requestId, {
+      note: "The manager picks it; the answer carries the same number, so replies can be matched to requests over UDP.",
+    }),
+    bulk
+      ? leaf(0x02, berInt(t.nonRepeaters ?? 0), "Non-repeaters", t.nonRepeaters ?? 0, { note: "How many of the first OIDs to fetch only once." })
+      : leaf(0x02, berInt(t.errorStatus ?? 0), "Error status", `${t.errorStatus ?? 0} (${errName})`, t.errorStatus ? { note: "Non-zero means the agent refused the request." } : {}),
+    bulk
+      ? leaf(0x02, berInt(t.maxRepetitions ?? 0), "Max-repetitions", t.maxRepetitions ?? 0, { note: "How many next objects to return for each remaining OID." })
+      : leaf(0x02, berInt(t.errorIndex ?? 0), "Error index", t.errorIndex ?? 0),
+    seq(0x30, "Varbind list", `${vbs.length} ${vbs.length === 1 ? "varbind" : "varbinds"}`, vbs, {
+      note: "Pairs of object name (OID) and value. In requests the value is NULL.",
+    }),
+  ];
+  return seq(0x30, "SNMP message", "SEQUENCE", [
+    leaf(0x02, berInt(t.version ?? 1), "Version", (t.version ?? 1) === 1 ? "1 (SNMPv2c)" : "0 (SNMPv1)", {
+      note: "The number on the wire is one less than the version name.",
+    }),
+    leaf(0x04, [...new TextEncoder().encode(t.community)], "Community", `"${t.community}"`, {
+      mono: !0,
+      note: "A shared password, sent in plain text. SNMPv3 replaces it with real users, authentication and encryption.",
+    }),
+    seq(pduTag, "PDU type", `${pduName} (0x${pduTag.toString(16).toUpperCase()})`, pduKids),
+  ], { note: "Every SNMP message is ASN.1 BER: type, length, value, nested." });
+}
+function berSize(n) {
+  const body = n.children ? n.children.reduce((a, c) => a + berSize(c), 0) : n.bytes.length;
+  return 1 + berLen(body).length + body;
+}
+function berEmit(s, n, depth) {
+  if (n.children) {
+    const body = n.children.reduce((a, c) => a + berSize(c), 0);
+    s.field(n.name, n.value, () => s.raw([n.tag, ...berLen(body)]), { depth, ...n.opts });
+    n.children.forEach((c) => berEmit(s, c, depth + 1));
+  } else {
+    s.field(n.name, n.value, () => s.raw([n.tag, ...berLen(n.bytes.length), ...n.bytes]), { depth, ...n.opts });
+  }
+}
+const snmpSize = (t) => berSize(snmpTree(t));
+function decodeSnmp(t) {
+  const s = new me("app", `SNMP · ${snmpPduTags[t.pdu][1]}`);
+  s.summary = `v2c · ${snmpPduTags[t.pdu][1]}`;
+  berEmit(s, snmpTree(t), 0);
+  return s;
+}
+
+// ---------- NetFlow v9 ----------
+const nfFieldDefs = [
+  [8, 4, "IPV4_SRC_ADDR"],
+  [12, 4, "IPV4_DST_ADDR"],
+  [7, 2, "L4_SRC_PORT"],
+  [11, 2, "L4_DST_PORT"],
+  [4, 1, "PROTOCOL"],
+  [6, 1, "TCP_FLAGS"],
+  [2, 4, "IN_PKTS"],
+  [1, 4, "IN_BYTES"],
+  [22, 4, "FIRST_SWITCHED"],
+  [21, 4, "LAST_SWITCHED"],
+  [10, 2, "INPUT_SNMP"],
+  [14, 2, "OUTPUT_SNMP"],
+];
+const nfRecLen = nfFieldDefs.reduce((a, [, l]) => a + l, 0);
+const nfProto = { 6: "TCP", 17: "UDP", 1: "ICMP" };
+const nfFlags = (v) => {
+  const n = [[1, "FIN"], [2, "SYN"], [4, "RST"], [8, "PSH"], [16, "ACK"]].filter(([b]) => v & b).map(([, x]) => x);
+  return `0x${v.toString(16).padStart(2, "0")}${n.length ? ` (${n.join(", ")})` : ""}`;
+};
+function nfSize(t) {
+  let n = 20;
+  if (t.template) n += 4 + 4 + 4 * nfFieldDefs.length;
+  if (t.records) {
+    const l = 4 + nfRecLen * t.records.length;
+    n += l + ((4 - (l % 4)) % 4);
+  }
+  return n;
+}
+function decodeNetflow(t) {
+  const s = new me("app", t.template ? "NetFlow v9 · Template" : `NetFlow v9 · ${t.records.length} flows`);
+  s.summary = `seq ${t.seq}`;
+  const count = (t.template ? 1 : 0) + (t.records ? t.records.length : 0);
+  s.field("Version", "9", () => s.u16(9), { note: "NetFlow v9 (RFC 3954). IPFIX (RFC 7011) is its standard successor, version 10." });
+  s.field("Count", `${count} ${count === 1 ? "record" : "records"}`, () => s.u16(count), { note: "Template and data records in this packet." });
+  s.field("System uptime", `${t.uptime} ms`, () => s.u32(t.uptime), { note: "Milliseconds since the router booted. Flow start and end times count from the same clock." });
+  s.field("Export time", `${t.unix} (2026-11-08 13:2${t.unixLabel ?? "0"} UTC)`, () => s.u32(t.unix));
+  s.field("Sequence number", t.seq, () => s.u32(t.seq), { note: "Counts export packets. A gap tells the collector that packets were lost on the way." });
+  s.field("Source ID", t.sourceId ?? 1, () => s.u32(t.sourceId ?? 1), { note: "Which exporting process on the router sent it." });
+  if (t.template) {
+    const l = 4 + 4 + 4 * nfFieldDefs.length;
+    s.field("FlowSet ID", "0 (Template FlowSet)", () => s.u16(0), { depth: 0, note: "ID 0 means: the following describes the layout of data records." });
+    s.field("FlowSet length", `${l} bytes`, () => s.u16(l), { depth: 1 });
+    s.field("Template ID", "256", () => s.u16(256), { depth: 1, note: "Data FlowSets with ID 256 will use this layout." });
+    s.field("Field count", nfFieldDefs.length, () => s.u16(nfFieldDefs.length), { depth: 1 });
+    nfFieldDefs.forEach(([type, len, name]) =>
+      s.field(`Field ${type}`, `${name}, ${len} ${len === 1 ? "byte" : "bytes"}`, () => s.u16(type).u16(len), { depth: 2, mono: !0 }),
+    );
+  }
+  if (t.records) {
+    const l = 4 + nfRecLen * t.records.length, pad = (4 - (l % 4)) % 4;
+    s.field("FlowSet ID", "256 (data, uses template 256)", () => s.u16(256), { depth: 0, note: "Without template 256 the collector cannot tell where one field ends and the next begins." });
+    s.field("FlowSet length", `${l + pad} bytes`, () => s.u16(l + pad), { depth: 1 });
+    t.records.forEach((r, i) => {
+      s.field(`Flow ${i + 1}`, `${r.src}:${r.sport} → ${r.dst}:${r.dport} ${nfProto[r.proto]}`, () => {}, { depth: 1, mono: !0 });
+      s.field("Source address", r.src, () => s.raw(bt(r.src)), { depth: 2, mono: !0 });
+      s.field("Destination address", r.dst, () => s.raw(bt(r.dst)), { depth: 2, mono: !0 });
+      s.field("Source port", r.sport, () => s.u16(r.sport), { depth: 2 });
+      s.field("Destination port", r.dport, () => s.u16(r.dport), { depth: 2 });
+      s.field("Protocol", `${r.proto} (${nfProto[r.proto]})`, () => s.u8(r.proto), { depth: 2 });
+      s.field("TCP flags", nfFlags(r.flags ?? 0), () => s.u8(r.flags ?? 0), { depth: 2, note: r.proto === 6 ? "All TCP flags seen in the flow, OR-ed together." : undefined });
+      s.field("Packets", r.pkts.toLocaleString("en-US"), () => s.u32(r.pkts), { depth: 2 });
+      s.field("Bytes", r.bytes.toLocaleString("en-US"), () => s.u32(r.bytes), { depth: 2, note: "IP bytes, headers included." });
+      s.field("First packet", `${r.first} ms uptime`, () => s.u32(r.first), { depth: 2 });
+      s.field("Last packet", `${r.last} ms uptime`, () => s.u32(r.last), { depth: 2 });
+      s.field("Input interface", `${r.in} (${r.in === 1 ? "lan0" : "wan0"})`, () => s.u16(r.in), { depth: 2, note: "The same ifIndex numbers SNMP uses." });
+      s.field("Output interface", `${r.out} (${r.out === 1 ? "lan0" : "wan0"})`, () => s.u16(r.out), { depth: 2 });
+    });
+    if (pad) s.field("Padding", `${pad} zero bytes`, () => s.raw(Array(pad).fill(0)), { depth: 1 });
+  }
+  return s;
+}
+
+// ---------- Syslog ----------
+const sysFacilities = { 0: "kern", 1: "user", 3: "daemon", 4: "auth", 10: "authpriv", 16: "local0", 20: "local4", 23: "local7" };
+const sysSeverities = ["emerg", "alert", "crit", "err", "warning", "notice", "info", "debug"];
+const sysPriText = (p) => `${p} = ${sysFacilities[p >> 3] ?? p >> 3} (${p >> 3}) × 8 + ${sysSeverities[p & 7]} (${p & 7})`;
+function sysLine(m) {
+  if (m.format === "3164") return `<${m.pri}>${m.ts} ${m.host} ${m.tag}: ${m.msg}`;
+  return `<${m.pri}>1 ${m.ts} ${m.host} ${m.app} ${m.procid ?? "-"} ${m.msgid ?? "-"} ${m.sd ?? "-"} ${m.msg}`;
+}
+const sysBytes = (m) => new TextEncoder().encode(sysLine(m)).length;
+const sysFramed = (m, octet) => (octet ? `${sysBytes(m)} `.length + sysBytes(m) : sysBytes(m));
+const sysSize = (t) => (t.messages ?? [t.message]).reduce((a, m) => a + sysFramed(m, t.octet), 0);
+function sysEmit(s, m, octet, depth) {
+  if (octet) s.field("Message length", `${sysBytes(m)} bytes`, () => s.ascii(`${sysBytes(m)} `), { depth, mono: !0, note: "Octet counting (RFC 6587): the byte count and a space come first, so the receiver knows exactly where each message ends in the TCP stream." });
+  s.field("PRI", sysPriText(m.pri), () => s.ascii(`<${m.pri}>`), { depth, mono: !0, note: "Facility × 8 + severity, in angle brackets. Severity 0 is the most urgent, 7 the least." });
+  if (m.format === "3164") {
+    s.field("Timestamp", m.ts, () => s.ascii(m.ts + " "), { depth, mono: !0, note: "BSD format (RFC 3164): no year, no time zone, no fractions of a second." });
+    s.field("Hostname", m.host, () => s.ascii(m.host + " "), { depth, mono: !0 });
+    s.field("Tag", m.tag, () => s.ascii(m.tag + ": "), { depth, mono: !0, note: "Program name and process ID." });
+  } else {
+    s.field("Version", "1 (RFC 5424)", () => s.ascii("1 "), { depth, mono: !0 });
+    s.field("Timestamp", m.ts, () => s.ascii(m.ts + " "), { depth, mono: !0, note: "Full date, milliseconds and time zone (Z = UTC)." });
+    s.field("Hostname", m.host, () => s.ascii(m.host + " "), { depth, mono: !0 });
+    s.field("App name", m.app, () => s.ascii(m.app + " "), { depth, mono: !0 });
+    s.field("Process ID", m.procid ?? "-", () => s.ascii((m.procid ?? "-") + " "), { depth, mono: !0 });
+    s.field("Message ID", m.msgid ?? "- (none)", () => s.ascii((m.msgid ?? "-") + " "), { depth, mono: !0 });
+    s.field("Structured data", m.sd ?? "- (none)", () => s.ascii((m.sd ?? "-") + " "), { depth, mono: !0, note: m.sd ? "Machine-readable key=value pairs; the @32473 part is a private enterprise number." : undefined });
+  }
+  s.field("Message", m.msg, () => s.ascii(m.msg), { depth, mono: !0 });
+}
+function decodeSyslog(t) {
+  const list = t.messages ?? [t.message];
+  const s = new me("app", list.length > 1 ? `Syslog · ${list.length} messages` : `Syslog · ${sysSeverities[list[0].pri & 7]}`);
+  s.summary = t.octet ? "octet counting" : list[0].format === "3164" ? "RFC 3164" : "RFC 5424";
+  if (list.length === 1) sysEmit(s, list[0], t.octet, 0);
+  else
+    list.forEach((m, i) => {
+      s.field(`Message ${i + 1}`, `${sysFacilities[m.pri >> 3]}.${sysSeverities[m.pri & 7]}`, () => {}, { depth: 0 });
+      sysEmit(s, m, t.octet, 1);
+    });
+  return s;
+}
+
+// ---------- SNMP lesson ----------
+const SNMP_COMM = "public";
+const snmpRow = (time, src, dst, sport, dport, info, msg) => ({
+  time: N(time),
+  src,
+  dst,
+  proto: "SNMP",
+  info,
+  len: `${Me + De + 8 + snmpSize(msg)} B`,
+  wire: { udp: { sport, dport, data: { snmp: msg } } },
+});
+const snmpQ = (time, msg, info) => snmpRow(time, f, rt, 50123, 161, info, msg);
+const snmpA = (time, msg, info) => snmpRow(time, rt, f, 161, 50123, info, msg);
+const SNMP_DESCR = "Linux gw1 6.6.52 #1 SMP armv8l";
+const snmpGet1 = { community: SNMP_COMM, pdu: "get", requestId: 1804289383, varbinds: [["1.3.6.1.2.1.1.1.0", ["null"]], ["1.3.6.1.2.1.1.3.0", ["null"]]] };
+const snmpGet1r = { ...snmpGet1, pdu: "response", varbinds: [["1.3.6.1.2.1.1.1.0", ["str", SNMP_DESCR]], ["1.3.6.1.2.1.1.3.0", ["ticks", 123456700], "Hundredths of a second since the agent started."]] };
+const snmpNext1 = { community: SNMP_COMM, pdu: "getnext", requestId: 1804289384, varbinds: [["1.3.6.1.2.1.2.2.1.2", ["null"]]] };
+const snmpNext1r = { ...snmpNext1, pdu: "response", varbinds: [["1.3.6.1.2.1.2.2.1.2.1", ["str", "lan0"]]] };
+const snmpNext2 = { community: SNMP_COMM, pdu: "getnext", requestId: 1804289385, varbinds: [["1.3.6.1.2.1.2.2.1.2.1", ["null"]]] };
+const snmpNext2r = { ...snmpNext2, pdu: "response", varbinds: [["1.3.6.1.2.1.2.2.1.2.2", ["str", "wan0"]]] };
+const snmpBulk = { community: SNMP_COMM, pdu: "getbulk", requestId: 1804289386, nonRepeaters: 1, maxRepetitions: 2, varbinds: [["1.3.6.1.2.1.1.3.0", ["null"]], ["1.3.6.1.2.1.31.1.1.1.6", ["null"]], ["1.3.6.1.2.1.31.1.1.1.10", ["null"]]] };
+const snmpBulkr = {
+  ...snmpBulk,
+  pdu: "response",
+  nonRepeaters: undefined,
+  maxRepetitions: undefined,
+  errorStatus: 0,
+  errorIndex: 0,
+  varbinds: [
+    ["1.3.6.1.2.1.1.3.0", ["ticks", 123457950]],
+    ["1.3.6.1.2.1.31.1.1.1.6.1", ["counter64", 48213377102], "64-bit counter: bytes received on lan0 since boot."],
+    ["1.3.6.1.2.1.31.1.1.1.10.1", ["counter64", 912884310577]],
+    ["1.3.6.1.2.1.31.1.1.1.6.2", ["counter64", 913552087411]],
+    ["1.3.6.1.2.1.31.1.1.1.10.2", ["counter64", 49010264881]],
+  ],
+};
+const snmpSetRo = { community: SNMP_COMM, pdu: "set", requestId: 1804289387, varbinds: [["1.3.6.1.2.1.1.4.0", ["str", "noc@example.com"]]] };
+const snmpSetRor = { ...snmpSetRo, pdu: "response", errorStatus: 6, errorIndex: 1 };
+const snmpSetRw = { ...snmpSetRo, community: "n0c-Wr1te", requestId: 1804289388 };
+const snmpSetRwr = { ...snmpSetRw, pdu: "response" };
+const snmpLost = { community: SNMP_COMM, pdu: "get", requestId: 1804289389, varbinds: [["1.3.6.1.2.1.1.3.0", ["null"]]] };
+const snmpLostr = { ...snmpLost, pdu: "response", varbinds: [["1.3.6.1.2.1.1.3.0", ["ticks", 123470400]]] };
+const snmpTrap = {
+  community: SNMP_COMM,
+  pdu: "trap",
+  requestId: 912,
+  varbinds: [
+    ["1.3.6.1.2.1.1.3.0", ["ticks", 123480055], "When it happened, in agent uptime."],
+    ["1.3.6.1.6.3.1.1.4.1.0", ["oid", "1.3.6.1.6.3.1.1.5.3"], "Which event this is: linkDown."],
+    ["1.3.6.1.2.1.2.2.1.1.2", ["int", 2]],
+    ["1.3.6.1.2.1.2.2.1.7.2", ["int", 1], "1 = up: nobody switched it off on purpose."],
+    ["1.3.6.1.2.1.2.2.1.8.2", ["int", 2], "2 = down: the link is lost."],
+  ],
+};
+const lessonSnmp = {
+  id: "snmp",
+  name: "SNMP",
+  title: "Polling and Traps",
+  layer: 7,
+  nodes: ["client", "router"],
+  latency: { "client-router": 0.002 },
+  labels: {
+    client: ["NMS", "192.168.1.10 · SNMP manager"],
+    router: ["Router", "192.168.1.1 · SNMP agent"],
+  },
+  legend: [
+    ["amber", "Request (manager)"],
+    ["violet", "Response (agent)"],
+    ["teal", "Trap (agent)"],
+  ],
+  overview: {
+    full: "Simple Network Management Protocol",
+    description:
+      "SNMP lets a monitoring station read and change the state of network devices. The device runs an agent that exposes counters and settings as a tree of numbered objects (the MIB). The manager polls them over UDP, and the agent can also push alerts, called traps, when something happens.",
+    facts: [
+      ["Layer", "Application (Layer 7)"],
+      ["Ports", "UDP 161 (agent), 162 (traps)"],
+      ["Transport", "UDP"],
+      ["Encoding", "ASN.1 BER"],
+      ["Versions", "v1, v2c (community), v3 (users, encryption)"],
+      ["Defined In", "RFC 3411–3418"],
+    ],
+  },
+  outro: {
+    title: "Device under watch",
+    desc: "Polled on schedule, alerting on its own",
+    text: "The manager read the router’s name, uptime and traffic counters, walked its interface table, was refused a change with the read-only community and allowed it with the write one, recovered from a lost request by retrying, and got a trap the moment a link went down. Press REPLAY to watch it again.",
+    facts: [
+      ["Requests", "Get, GetNext, GetBulk, Set"],
+      ["Agent push", "SNMPv2-Trap to port 162"],
+      ["Reliability", "Manager retries on timeout"],
+      ["Security", "v2c: plain text; use v3 authPriv"],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "Manager and Agent",
+      desc: "Who asks and who answers",
+      detail:
+        "The laptop runs a network monitoring system (NMS), the SNMP manager. The router runs an SNMP agent on UDP port 161. Everything the agent can report has a numeric name, an OID, such as 1.3.6.1.2.1.1.3.0 for sysUpTime.",
+      facts: [
+        ["Manager", "192.168.1.10 (NMS)"],
+        ["Agent", "192.168.1.1, UDP 161"],
+        ["MIB-2 root", "1.3.6.1.2.1"],
+      ],
+      events: [
+        { type: "show", nodes: ["router"], frame: "local" },
+        { type: "note", at: "router", text: "AGENT LISTENING ON UDP 161", tone: "teal" },
+      ],
+    },
+    {
+      title: "GetRequest",
+      desc: "Read named objects",
+      detail:
+        "The manager asks for two objects by OID: sysDescr.0 and sysUpTime.0. It sends the community string “public”, which acts as a read-only password. The values in a request are NULL; the agent fills them in and answers with the same request ID.",
+      facts: [
+        ["Community", "public (read-only)"],
+        ["Asked for", "sysDescr.0, sysUpTime.0"],
+        ["Uptime", "123456700 ticks ≈ 14 days"],
+      ],
+      events: [
+        u("client", "router", "amber", "GET", ["sysDescr.0", "sysUpTime.0"], snmpQ(0, snmpGet1, "get-request 1.3.6.1.2.1.1.1.0 1.3.6.1.2.1.1.3.0")),
+        u("router", "client", "violet", "RESPONSE", [SNMP_DESCR, "uptime 14 d 06:56"], snmpA(0.003, snmpGet1r, "get-response 1.3.6.1.2.1.1.1.0 1.3.6.1.2.1.1.3.0")),
+      ],
+    },
+    {
+      title: "GetNext: Walking a Table",
+      desc: "Step through the interface list",
+      detail:
+        "The manager doesn’t know how many interfaces the router has, so it walks the ifDescr column: GetNext returns the first object after the OID given. Feeding each answer back in visits the whole table, one round trip per row. This is what snmpwalk does.",
+      facts: [
+        ["Column", "ifDescr (1.3.6.1.2.1.2.2.1.2)"],
+        ["Row 1", "lan0"],
+        ["Row 2", "wan0"],
+      ],
+      events: [
+        u("client", "router", "amber", "GETNEXT", ["after ifDescr"], snmpQ(0.21, snmpNext1, "get-next-request 1.3.6.1.2.1.2.2.1.2")),
+        u("router", "client", "violet", "RESPONSE", ["ifDescr.1 = lan0"], snmpA(0.213, snmpNext1r, "get-response 1.3.6.1.2.1.2.2.1.2.1")),
+        u("client", "router", "amber", "GETNEXT", ["after ifDescr.1"], snmpQ(0.215, snmpNext2, "get-next-request 1.3.6.1.2.1.2.2.1.2.1"), { quick: !0 }),
+        u("router", "client", "violet", "RESPONSE", ["ifDescr.2 = wan0"], snmpA(0.218, snmpNext2r, "get-response 1.3.6.1.2.1.2.2.1.2.2"), { quick: !0 }),
+      ],
+    },
+    {
+      title: "GetBulk: Traffic Counters",
+      desc: "Many rows in one round trip",
+      detail:
+        "SNMPv2c adds GetBulk: one request returns several next objects at once. Non-repeaters = 1 fetches sysUpTime once; max-repetitions = 2 returns two rows of the in and out byte counters. Polling them every minute and taking the difference gives the traffic graph.",
+      facts: [
+        ["Non-repeaters", "1 (sysUpTime)"],
+        ["Max-repetitions", "2 (both interfaces)"],
+        ["Counters", "ifHCInOctets, ifHCOutOctets (64-bit)"],
+      ],
+      events: [
+        u("client", "router", "amber", "GETBULK", ["non-rep 1, max-rep 2", "ifHCIn/OutOctets"], snmpQ(0.42, snmpBulk, "getBulkRequest N=1 M=2")),
+        u("router", "client", "violet", "RESPONSE", ["5 varbinds", "byte counters for lan0, wan0"], snmpA(0.424, snmpBulkr, "get-response 5 varbinds")),
+      ],
+    },
+    {
+      title: "SetRequest",
+      desc: "Change a value, with the right password",
+      detail:
+        "Set writes a value. With the read-only community the agent answers error-status noAccess (6) and error-index 1, pointing at the first varbind. Sent again with the write community, the change of sysContact succeeds. In v2c both communities cross the network in plain text.",
+      facts: [
+        ["Object", "sysContact.0"],
+        ["With “public”", "noAccess (6)"],
+        ["With write community", "noError, value stored"],
+      ],
+      events: [
+        u("client", "router", "amber", "SET", ["sysContact.0 = noc@example.com", "community public"], snmpQ(0.63, snmpSetRo, "set-request 1.3.6.1.2.1.1.4.0")),
+        u("router", "client", "violet", "RESPONSE", ["noAccess (6)", "error-index 1"], snmpA(0.633, snmpSetRor, "get-response noAccess 1.3.6.1.2.1.1.4.0")),
+        { type: "note", at: "router", text: "READ-ONLY COMMUNITY", tone: "amber" },
+        u("client", "router", "amber", "SET", ["same value", "write community"], snmpQ(0.65, snmpSetRw, "set-request 1.3.6.1.2.1.1.4.0")),
+        u("router", "client", "violet", "RESPONSE", ["noError"], snmpA(0.653, snmpSetRwr, "get-response 1.3.6.1.2.1.1.4.0")),
+      ],
+    },
+    {
+      title: "Lost Request, Retry",
+      desc: "UDP gives no guarantees",
+      detail:
+        "The next poll is lost on the way. UDP doesn’t notice, so the manager relies on its own timer: after 1 s with no response it sends the request again, same request ID. Typical managers retry a few times before marking the device unreachable.",
+      facts: [
+        ["Timeout", "1 s"],
+        ["Retry", "Same request ID 1804289389"],
+        ["Then", "Usually 3–5 retries max"],
+      ],
+      events: [
+        u("client", "router", "amber", "GET", ["sysUpTime.0"], snmpQ(0.84, snmpLost, "get-request 1.3.6.1.2.1.1.3.0"), { lost: !0 }),
+        { type: "note", at: "client", text: "NO RESPONSE IN 1 S", tone: "amber" },
+        u("client", "router", "amber", "RETRY", ["same request ID"], snmpQ(1.84, snmpLost, "get-request 1.3.6.1.2.1.1.3.0 (retry)")),
+        u("router", "client", "violet", "RESPONSE", ["sysUpTime.0"], snmpA(1.843, snmpLostr, "get-response 1.3.6.1.2.1.1.3.0")),
+      ],
+    },
+    {
+      title: "Trap: Link Down",
+      desc: "The agent speaks first",
+      detail:
+        "The WAN cable is unplugged. The agent doesn’t wait to be polled: it sends an SNMPv2-Trap to the manager’s UDP port 162 with the event OID linkDown and the interface’s index and status. A trap is never acknowledged; InformRequest is the variant that is.",
+      facts: [
+        ["To", "192.168.1.10, UDP 162"],
+        ["Event", "linkDown (1.3.6.1.6.3.1.1.5.3)"],
+        ["Interface", "ifIndex 2 (wan0)"],
+      ],
+      events: [
+        { type: "note", at: "router", text: "WAN0 LINK LOST", tone: "amber" },
+        u("router", "client", "teal", "TRAP", ["linkDown", "ifIndex 2, oper down"], snmpRow(2.4, rt, f, 49731, 162, "snmpV2-trap 1.3.6.1.6.3.1.1.5.3 (linkDown)", snmpTrap)),
+        { type: "note", at: "client", text: "ALERT: GW1 WAN0 DOWN", tone: "green" },
+      ],
+    },
+  ],
+};
+
+// ---------- NetFlow lesson ----------
+const NF_COLL = "203.0.113.50";
+const NF_UNIX = 1794144000;
+const nfRecords = [
+  { src: f, dst: "203.0.113.10", sport: 52411, dport: 443, proto: 6, flags: 0x1b, pkts: 18, bytes: 2214, first: 1209300, last: 1211450, in: 1, out: 2 },
+  { src: "203.0.113.10", dst: f, sport: 443, dport: 52411, proto: 6, flags: 0x1b, pkts: 16, bytes: 14890, first: 1209318, last: 1211452, in: 2, out: 1 },
+  { src: f, dst: "8.8.8.8", sport: 61744, dport: 53, proto: 17, flags: 0, pkts: 1, bytes: 61, first: 1209100, last: 1209100, in: 1, out: 2 },
+  { src: f, dst: "198.51.100.80", sport: 50312, dport: 22, proto: 6, flags: 0x1a, pkts: 42, bytes: 5880, first: 1209500, last: 1240100, in: 1, out: 2 },
+];
+const nfMore = [
+  { src: f, dst: "198.51.100.80", sport: 50312, dport: 22, proto: 6, flags: 0x18, pkts: 120, bytes: 16030, first: 1240100, last: 1300100, in: 1, out: 2 },
+  { src: "198.51.100.80", dst: f, sport: 22, dport: 50312, proto: 6, flags: 0x18, pkts: 118, bytes: 30412, first: 1240120, last: 1300090, in: 2, out: 1 },
+];
+const nfRow = (time, info, msg) => ({
+  time: N(time),
+  src: Ts,
+  dst: NF_COLL,
+  proto: "CFLOW",
+  info,
+  len: `${Me + De + 8 + nfSize(msg)} B`,
+  wire: { udp: { sport: 49152, dport: 2055, data: { netflow: msg } } },
+});
+const nfTpl = { template: !0, uptime: 1241000, unix: NF_UNIX + 1, unixLabel: "0", seq: 7311 };
+const nfData1 = { records: nfRecords, uptime: 1241020, unix: NF_UNIX + 1, unixLabel: "0", seq: 7312 };
+const nfData2 = { records: nfMore.slice(0, 1), uptime: 1301000, unix: NF_UNIX + 61, unixLabel: "1", seq: 7313 };
+const nfData3 = { records: nfMore.slice(1), uptime: 1301020, unix: NF_UNIX + 61, unixLabel: "1", seq: 7314 };
+const lessonNetflow = {
+  id: "netflow",
+  name: "NetFlow",
+  title: "Who Talked to Whom",
+  layer: 7,
+  nodes: ["client", "router", "internet", "web"],
+  latency: { "client-router": 0.002, "router-web": 0.014, "client-web": 0.016, "client-internet": 0.008 },
+  labels: {
+    router: ["Router", "198.51.100.7 · flow exporter"],
+    web: ["NetFlow Collector", NF_COLL],
+  },
+  legend: [
+    ["slate", "User traffic"],
+    ["teal", "Template"],
+    ["blue", "Flow records"],
+  ],
+  overview: {
+    full: "Cisco NetFlow v9 / IPFIX",
+    description:
+      "NetFlow summarises traffic instead of copying it. The router groups packets into flows, by addresses, ports and protocol, counts their packets and bytes, and when a flow ends sends a compact record to a collector over UDP. The collector shows who talked to whom, how much and when, without ever seeing the content.",
+    facts: [
+      ["Layer", "Application (Layer 7)"],
+      ["Default Port", "UDP 2055 (also 9995, 4739 for IPFIX)"],
+      ["Transport", "UDP"],
+      ["Flow key", "Src/dst IP, ports, protocol, interface"],
+      ["Format", "Templates + data records"],
+      ["Defined In", "RFC 3954 (v9), RFC 7011 (IPFIX)"],
+    ],
+  },
+  outro: {
+    title: "Traffic accounted",
+    desc: "Metadata for every conversation",
+    text: "The router turned the laptop’s web, DNS and SSH traffic into flow records, described their layout once with a template, and exported them to the collector. A lost export packet showed up as a gap in the sequence numbers: those flows are simply missing from the statistics. Press REPLAY to watch it again.",
+    facts: [
+      ["Flows exported", "6 (one per direction)"],
+      ["Record size", `${nfRecLen} bytes per flow`],
+      ["Loss handling", "Detected by sequence, not resent"],
+      ["Privacy", "Headers only, no payload"],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "Traffic Through the Router",
+      desc: "Packets become flows",
+      detail:
+        "The laptop opens an HTTPS page, asks DNS for a name and starts an SSH session. Every packet passing the router is matched against its flow cache by the 5-tuple and interface. A new key starts a flow; matching packets add to its packet and byte counters.",
+      facts: [
+        ["Flow key", "src, dst, sport, dport, protocol"],
+        ["Cache", "3 new flows (plus replies)"],
+        ["Sampling", "None: every packet counted"],
+      ],
+      events: [
+        { type: "show", nodes: ["router", "internet"], frame: "path" },
+        {
+          type: "stream",
+          from: "client",
+          to: "internet",
+          color: "slate",
+          label: "3 NEW FLOWS",
+          payload: ["HTTPS, DNS, SSH"],
+          packets: [
+            u("client", "internet", "slate", "SYN :443", [], { time: N(0), src: f, dst: "203.0.113.10", proto: "TCP", info: "52411 → 443 [SYN] Seq=0", len: "66 B", wire: O($e(f, 52411, "203.0.113.10", 443), f, "S") }),
+            u("client", "internet", "slate", "DNS", [], { time: N(0.004), src: f, dst: "8.8.8.8", proto: "DNS", info: "Standard query A www.example.com", len: "75 B", wire: { udp: { sport: 61744, dport: 53, data: { dns: { id: 31810, rd: !0, q: ["www.example.com", "A"] } } } } }),
+            u("client", "internet", "slate", "SYN :22", [], { time: N(0.008), src: f, dst: "198.51.100.80", proto: "TCP", info: "50312 → 22 [SYN] Seq=0", len: "66 B", wire: O($e(f, 50312, "198.51.100.80", 22), f, "S") }),
+          ],
+        },
+        { type: "note", at: "router", text: "FLOW CACHE: 4 ENTRIES", tone: "teal" },
+      ],
+    },
+    {
+      title: "Template FlowSet",
+      desc: "Describe the record layout first",
+      detail:
+        "NetFlow v9 records have no fixed format. Before any data, the router exports a template: ID 256, twelve fields, each as a type number and length. The collector stores it per exporter and source ID and uses it to parse every record that refers to 256.",
+      facts: [
+        ["Template ID", "256"],
+        ["Fields", `12, ${nfRecLen} bytes per record`],
+        ["To", `${NF_COLL}, UDP 2055`],
+      ],
+      events: [
+        { type: "show", nodes: ["web"], frame: "path" },
+        u("router", "web", "teal", "TEMPLATE", ["ID 256, 12 fields"], nfRow(1.2, "NetFlow/IPFIX flow (9): FlowSet 0 (Template ID 256)", nfTpl)),
+        { type: "note", at: "web", text: "TEMPLATE 256 STORED", tone: "green" },
+      ],
+    },
+    {
+      title: "Data FlowSet",
+      desc: "Finished flows are exported",
+      detail:
+        "A flow is exported when it ends (TCP FIN or RST), when it has been idle for the inactive timeout (15 s), or every active timeout (1–30 min) for long ones. Here four flows go in one packet: HTTPS each way, DNS, and the first part of SSH. Flows are one-way, so a conversation makes two.",
+      facts: [
+        ["Records", "4 flows in one packet"],
+        ["Largest", "HTTPS reply: 16 packets, 14,890 bytes"],
+        ["Timeouts", "Inactive 15 s, active 60 s here"],
+      ],
+      events: [
+        u("router", "web", "blue", "DATA ×4", ["HTTPS ↔, DNS, SSH", "seq 7312"], nfRow(1.22, "NetFlow/IPFIX flow (9): FlowSet 256, 4 flows", nfData1)),
+        { type: "note", at: "web", text: "4 FLOWS DECODED", tone: "green" },
+      ],
+    },
+    {
+      title: "Lost Export Packet",
+      desc: "A gap in the sequence",
+      detail:
+        "A minute later the active timeout exports the ongoing SSH session in two packets. The first is lost: UDP has no retransmission and NetFlow none of its own. The collector sees sequence 7314 right after 7312, counts one lost packet, and those 120 packets of traffic never appear in the reports.",
+      facts: [
+        ["Sent", "seq 7313 (lost), 7314"],
+        ["Collector sees", "Gap of 1 packet"],
+        ["Remedy", "Reliable transport: SCTP/TCP in IPFIX"],
+      ],
+      events: [
+        u("router", "web", "blue", "DATA", ["SSH, laptop → server", "seq 7313"], nfRow(61.2, "NetFlow/IPFIX flow (9): FlowSet 256, 1 flow", nfData2), { lost: !0 }),
+        u("router", "web", "blue", "DATA", ["SSH, server → laptop", "seq 7314"], nfRow(61.22, "NetFlow/IPFIX flow (9): FlowSet 256, 1 flow", nfData3)),
+        { type: "note", at: "web", text: "SEQUENCE GAP: 1 LOST", tone: "amber" },
+      ],
+    },
+    {
+      title: "Template Refresh",
+      desc: "Collectors may restart",
+      detail:
+        "If the collector restarts, it forgets the templates and can only drop data FlowSets it can’t parse. So exporters resend templates on a schedule, for example every 20 packets or every few minutes, and after that the collector decodes everything again.",
+      facts: [
+        ["Resend", "Every 20 packets or 30 min"],
+        ["Without it", "Data can’t be decoded"],
+        ["Same", "Template ID 256"],
+      ],
+      events: [
+        { type: "note", at: "web", text: "COLLECTOR RESTARTED", tone: "amber" },
+        u("router", "web", "teal", "TEMPLATE", ["ID 256 again"], nfRow(90, "NetFlow/IPFIX flow (9): FlowSet 0 (Template ID 256)", { ...nfTpl, uptime: 1330000, unix: NF_UNIX + 90, unixLabel: "1", seq: 7315 })),
+        { type: "note", at: "web", text: "TEMPLATE 256 STORED", tone: "green" },
+      ],
+    },
+  ],
+};
+
+// ---------- Syslog lessons ----------
+const SYS_SRV = "203.0.113.60";
+const sysUdpRow = (time, src, sport, msg, info) => ({
+  time: N(time),
+  src,
+  dst: SYS_SRV,
+  proto: "Syslog",
+  info,
+  len: `${Me + De + 8 + sysSize({ message: msg })} B`,
+  wire: { udp: { sport, dport: 514, data: { syslog: { message: msg } } } },
+});
+const sysRouterInfo = (m) => `${sysFacilities[m.pri >> 3]}.${sysSeverities[m.pri & 7]}: ${m.msg}`;
+const sysM1 = { format: "3164", pri: 190, ts: "Nov  8 16:20:01", host: "gw1", tag: "dhcpd[811]", msg: "DHCPACK on 192.168.1.10 to 00:00:5e:00:53:10 via lan0" };
+const sysM2 = { format: "5424", pri: 14, ts: "2026-11-08T13:20:05.412Z", host: "laptop", app: "backup", procid: "3121", msgid: "JOB42", sd: '[job@32473 id="42" files="1832"]', msg: "Nightly backup finished in 312 s" };
+const sysFail = (n, ts) => ({ format: "3164", pri: 84, ts, host: "gw1", tag: "sshd[2301]", msg: `Failed password for root from 192.0.2.66 port ${40110 + n} ssh2` });
+const sysCrit = { format: "3164", pri: 82, ts: "Nov  8 16:21:42", host: "gw1", tag: "sshd[2301]", msg: "error: maximum authentication attempts exceeded for root from 192.0.2.66" };
+const lessonSyslogUdp = {
+  id: "syslog-udp",
+  name: "Syslog/UDP",
+  title: "Fire and Forget",
+  layer: 7,
+  nodes: ["client", "router", "internet", "web"],
+  latency: { "client-router": 0.002, "router-web": 0.014, "client-web": 0.016 },
+  labels: {
+    router: ["Router gw1", "198.51.100.7"],
+    web: ["Syslog Server", SYS_SRV],
+  },
+  legend: [
+    ["amber", "From the router"],
+    ["blue", "From the laptop"],
+  ],
+  overview: {
+    full: "Syslog over UDP",
+    description:
+      "Syslog is the common way for routers, servers and applications to send log messages to a central server. Each message carries a priority (facility and severity), a timestamp, the host name and free text. The classic transport is UDP port 514: one message per datagram, no handshake and no acknowledgement.",
+    facts: [
+      ["Layer", "Application (Layer 7)"],
+      ["Default Port", "UDP 514"],
+      ["Transport", "UDP"],
+      ["Formats", "RFC 3164 (BSD), RFC 5424"],
+      ["Priority", "Facility × 8 + severity"],
+      ["Defined In", "RFC 5424, RFC 5426"],
+    ],
+  },
+  outro: {
+    title: "Logs collected, mostly",
+    desc: "Cheap, fast and lossy",
+    text: "The router and the laptop sent their logs in both message formats, each as a single datagram. During a burst one message was lost, and neither side could know: UDP syslog has no acknowledgements. The server still raised an alert on the critical message. Press REPLAY to watch it again.",
+    facts: [
+      ["Messages", "7 sent, 6 stored"],
+      ["Overhead", "8-byte UDP header, no handshake"],
+      ["Lost", "1, silently"],
+      ["For reliability", "Syslog over TCP or TLS"],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "Priority: Facility and Severity",
+      desc: "One number says who and how bad",
+      detail:
+        "Every syslog message starts with a priority in angle brackets: facility × 8 + severity. The facility names the source (kern, auth, daemon, local0–local7), the severity runs from 0 emerg to 7 debug. So <190> is local7 (23 × 8 = 184) plus info (6).",
+      facts: [
+        ["<190>", "local7.info"],
+        ["<84>", "authpriv.warning"],
+        ["<82>", "authpriv.crit"],
+      ],
+      events: [
+        { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+        { type: "note", at: "web", text: "LISTENING ON UDP 514", tone: "teal" },
+      ],
+    },
+    {
+      title: "BSD Format (RFC 3164)",
+      desc: "The router’s DHCP log",
+      detail:
+        "The router logs that it gave the laptop an address. It uses the old BSD format: priority, a timestamp without year or time zone, the host name and a tag with the program name, then the text. One message, one UDP datagram.",
+      facts: [
+        ["PRI", "190 = local7.info"],
+        ["Host, tag", "gw1, dhcpd[811]"],
+        ["From", "198.51.100.7 → 203.0.113.60:514"],
+      ],
+      events: [
+        u("router", "web", "amber", "<190> DHCPACK", ["local7.info", "gw1 dhcpd[811]"], sysUdpRow(0, Ts, 514, sysM1, sysRouterInfo(sysM1))),
+        { type: "note", at: "web", text: "STORED", tone: "green" },
+      ],
+    },
+    {
+      title: "Structured Format (RFC 5424)",
+      desc: "The laptop’s backup job",
+      detail:
+        "A backup program on the laptop logs in the modern format: version 1, an ISO 8601 timestamp with milliseconds and time zone, app name, process ID, message ID and structured data, machine-readable key=value pairs in square brackets.",
+      facts: [
+        ["PRI", "14 = user.info"],
+        ["App, msgid", "backup, JOB42"],
+        ["Structured data", 'job@32473 id="42" files="1832"'],
+      ],
+      events: [
+        u("client", "web", "blue", "<14> BACKUP DONE", ["RFC 5424", "[job@32473 …]"], sysUdpRow(4.2, f, 51514, sysM2, sysRouterInfo(sysM2))),
+        { type: "note", at: "web", text: "STORED", tone: "green" },
+      ],
+    },
+    {
+      title: "Burst and Silent Loss",
+      desc: "Nobody notices a missing message",
+      detail:
+        "Someone is guessing the router’s SSH password. It logs every failure, four messages within two seconds. The second one is dropped on the way. There is no acknowledgement and no sequence number, so neither the router nor the server knows it is missing.",
+      facts: [
+        ["Sent", "3 × authpriv.warning, 1 × crit"],
+        ["Lost", "1 (port 40112)"],
+        ["Detected", "Never"],
+      ],
+      events: [
+        {
+          type: "stream",
+          from: "router",
+          to: "web",
+          color: "amber",
+          label: "4 MESSAGES",
+          payload: ["Failed password ×3", "the second is lost"],
+          packets: [
+            u("router", "web", "amber", "<84>", [], sysUdpRow(98.1, Ts, 514, sysFail(1, "Nov  8 16:21:40"), sysRouterInfo(sysFail(1)))),
+            u("router", "web", "amber", "<84>", [], sysUdpRow(98.6, Ts, 514, sysFail(2, "Nov  8 16:21:41"), sysRouterInfo(sysFail(2))), { lost: !0 }),
+            u("router", "web", "amber", "<84>", [], sysUdpRow(99.2, Ts, 514, sysFail(3, "Nov  8 16:21:41"), sysRouterInfo(sysFail(3)))),
+            u("router", "web", "amber", "<82>", [], sysUdpRow(99.9, Ts, 514, sysCrit, sysRouterInfo(sysCrit))),
+          ],
+        },
+        { type: "note", at: "internet", text: "1 MESSAGE LOST", tone: "amber" },
+      ],
+    },
+    {
+      title: "Filtering by Severity",
+      desc: "Critical messages raise an alert",
+      detail:
+        "The server files messages by facility and severity. A rule such as authpriv.crit and above sends an alert to the on-call engineer. The <82> message matches; the warnings are only stored. A real server would also count the gap only if the messages had numbers, which UDP syslog doesn’t have.",
+      facts: [
+        ["Rule", "authpriv.crit → alert"],
+        ["Matched", "<82> max auth attempts"],
+        ["Stored", "6 of 7 messages"],
+      ],
+      events: [
+        { type: "camera", frame: "path" },
+        { type: "note", at: "web", text: "ALERT: SSH BRUTE FORCE ON GW1", tone: "green" },
+      ],
+    },
+  ],
+};
+
+const SYS_CONN = $e(Ts, 41514, SYS_SRV, 514);
+const sysT1 = { format: "5424", pri: 86, ts: "2026-11-08T13:22:10.004Z", host: "gw1", app: "sshd", procid: "2301", msg: "Accepted publickey for admin from 192.168.1.10 port 50312 ssh2" };
+const sysT2 = { format: "5424", pri: 30, ts: "2026-11-08T13:22:10.120Z", host: "gw1", app: "dnsmasq", procid: "915", msg: "query[A] www.example.com from 192.168.1.10" };
+const sysT3 = { format: "5424", pri: 28, ts: "2026-11-08T13:22:31.870Z", host: "gw1", app: "firewall", procid: "1024", msgid: "DROP", sd: '[fw@32473 src="192.0.2.66" dport="23"]', msg: "Dropped inbound telnet" };
+const sysBatch = { octet: !0, messages: [sysT1, sysT2] };
+const sysSingle = { octet: !0, messages: [sysT3] };
+const sysB1 = sysSize(sysBatch), sysB2 = sysSize(sysSingle);
+const sysTcpRow = (time, from, info, len, wire, proto = "Syslog") => ({ time: N(time), src: from, dst: from === Ts ? SYS_SRV : Ts, proto, info, len: `${len} B`, wire });
+const lessonSyslogTcp = {
+  id: "syslog-tcp",
+  name: "Syslog/TCP",
+  title: "Reliable Log Streams",
+  layer: 7,
+  nodes: ["client", "router", "internet", "web"],
+  latency: { "client-router": 0.002, "router-web": 0.014, "client-web": 0.016 },
+  labels: {
+    router: ["Router gw1", "198.51.100.7"],
+    web: ["Syslog Server", SYS_SRV],
+  },
+  legend: [
+    ["green", "TCP"],
+    ["amber", "Syslog messages"],
+    ["violet", "ACK from server"],
+  ],
+  overview: {
+    full: "Syslog over TCP",
+    description:
+      "Over TCP, syslog becomes a stream: the sender opens one connection and writes message after message. TCP acknowledges and resends lost data, so nothing disappears silently. Because a stream has no message boundaries, each message is prefixed with its length in bytes (octet counting).",
+    facts: [
+      ["Layer", "Application (Layer 7)"],
+      ["Default Port", "TCP 514 (6514 with TLS)"],
+      ["Transport", "TCP"],
+      ["Framing", "Octet counting or newline"],
+      ["Format", "RFC 5424"],
+      ["Defined In", "RFC 6587, RFC 5425 (TLS)"],
+    ],
+  },
+  outro: {
+    title: "Every message delivered",
+    desc: "Ordered, acknowledged, resent when lost",
+    text: "The router opened a TCP connection to the log server, sent two messages in one segment framed by their byte counts, and when a segment was lost TCP resent it, so the server received every message in order. In production the same stream usually runs inside TLS on port 6514. Press REPLAY to watch it again.",
+    facts: [
+      ["Messages", "3 sent, 3 stored"],
+      ["Retransmissions", "1, by TCP"],
+      ["Framing", "Length prefix per message"],
+      ["Secure variant", "TLS, TCP 6514 (RFC 5425)"],
+    ],
+  },
+  start: { nodes: ["client"], frame: "client" },
+  steps: [
+    {
+      title: "TCP Connection",
+      desc: "Open the log stream once",
+      detail:
+        "The router’s syslog daemon (rsyslog) opens a TCP connection to the server’s port 514 with the usual three-way handshake. The connection stays open, and messages are written into it as they happen.",
+      facts: [
+        ["Server", `${SYS_SRV}:514`],
+        ["Client port", "41514"],
+        ["Handshake", "SYN → SYN-ACK → ACK"],
+      ],
+      events: [
+        { type: "show", nodes: ["router", "internet", "web"], frame: "path" },
+        ...Je({ from: "router", to: "web", src: Ts, dst: SYS_SRV, sport: 41514, dport: 514, t: [0, 0.028, 0.056], quick: !1, linux: !0 }),
+      ],
+    },
+    {
+      title: "Octet-Counted Messages",
+      desc: "Two messages, one segment",
+      detail:
+        "Two log lines are ready at once, so they travel in the same TCP segment. Each starts with its length in bytes and a space, then the message itself. The server reads the number, takes exactly that many bytes, and knows where the next message starts, even if a message contains a newline.",
+      facts: [
+        ["Messages", "authpriv.info, daemon.info"],
+        ["Framing", "“LEN ” + message"],
+        ["Segment", `${sysB1} bytes of syslog`],
+      ],
+      events: [
+        u("router", "web", "amber", "2 MESSAGES", ["sshd: Accepted publickey", "dnsmasq: query[A]"], sysTcpRow(0.06, Ts, `41514 → 514 [PSH, ACK] Seq=1 Ack=1 Len=${sysB1}`, be(sysB1 + 12), O(SYS_CONN, Ts, "PA", { syslog: sysBatch }))),
+        u("web", "router", "violet", "ACK", [`ack=${sysB1 + 1}`], sysTcpRow(0.088, SYS_SRV, `514 → 41514 [ACK] Seq=1 Ack=${sysB1 + 1}`, 66, O(SYS_CONN, SYS_SRV, "A"), "TCP"), { quick: !0 }),
+        { type: "note", at: "web", text: "2 MESSAGES STORED", tone: "green" },
+      ],
+    },
+    {
+      title: "Lost Segment",
+      desc: "TCP notices what UDP couldn’t",
+      detail:
+        "The firewall logs a dropped telnet attempt. The segment is lost on the way, so no ACK comes back. The router keeps the bytes in its send buffer and starts the retransmission timer instead of forgetting them.",
+      facts: [
+        ["Message", "daemon.warning, firewall DROP"],
+        ["Bytes in flight", `${sysB2}`],
+        ["Waiting for", `ACK ${sysB1 + sysB2 + 1}`],
+      ],
+      events: [
+        u("router", "web", "amber", "FIREWALL DROP", ["<28> telnet blocked"], sysTcpRow(21.8, Ts, `41514 → 514 [PSH, ACK] Seq=${sysB1 + 1} Ack=1 Len=${sysB2}`, be(sysB2 + 12), O(SYS_CONN, Ts, "PA", { syslog: sysSingle })), { lost: !0 }),
+        { type: "note", at: "router", text: "NO ACK: RTO TIMER RUNNING", tone: "amber" },
+      ],
+    },
+    {
+      title: "Retransmission",
+      desc: "Same bytes, sent again",
+      detail:
+        "About 200 ms later the timer fires and TCP resends the same bytes with the same sequence number. This time they arrive; the server ACKs all of them, and the message is stored in order after the previous two.",
+      facts: [
+        ["Timer", "RTO ≈ 200 ms"],
+        ["Resent", `Seq ${sysB1 + 1}, ${sysB2} bytes`],
+        ["Result", "No log lost"],
+      ],
+      events: [
+        u("router", "web", "amber", "RESEND", ["same Seq, same bytes"], sysTcpRow(22.01, Ts, `[TCP Retransmission] 41514 → 514 [PSH, ACK] Seq=${sysB1 + 1} Ack=1 Len=${sysB2}`, be(sysB2 + 12), O(SYS_CONN, Ts, "PA", { syslog: sysSingle }, { seq: sysB1 + 1 }))),
+        u("web", "router", "violet", "ACK", [`ack=${sysB1 + sysB2 + 1}`], sysTcpRow(22.038, SYS_SRV, `514 → 41514 [ACK] Seq=1 Ack=${sysB1 + sysB2 + 1}`, 66, O(SYS_CONN, SYS_SRV, "A"), "TCP"), { quick: !0 }),
+        { type: "note", at: "web", text: "STORED, IN ORDER", tone: "green" },
+      ],
+    },
+  ],
+};
+
+const cs = {
+    "http": pi,
+    "https": hi,
+    "http2": lessonHttp2,
+    "http3": lessonHttp3,
+    "dns": wi,
+    "dhcp": Si,
+    "smtp": _i,
+    "pop3": Ki,
+    "imap": Xi,
+    "ftp": Zi,
+    "ssh": ul,
+    "ws": lessonWs,
+    "mqtt": lessonMqtt,
+    "sse": lessonSse,
+    "chunked": lessonChunked,
+    "grpc": lessonGrpc,
+    "snmp": lessonSnmp,
+    "netflow": lessonNetflow,
+    "syslog-udp": lessonSyslogUdp,
+    "syslog-tcp": lessonSyslogTcp,
+  },
+  Xt = [
+    { id: "http", name: "HTTP", full: "Hypertext Transfer Protocol", group: "application" },
+    { id: "https", name: "HTTPS", full: "HTTP Secure", group: "security" },
+    { id: "http2", name: "HTTP/2", full: "Hypertext Transfer Protocol Version 2", group: "application" },
+    { id: "http3", name: "HTTP/3", full: "HTTP/3 over QUIC", group: "application" },
+    { id: "dns", name: "DNS", full: "Domain Name System", group: "application" },
+    { id: "dhcp", name: "DHCP", full: "Dynamic Host Configuration", group: "application" },
+    { id: "smtp", name: "SMTP", full: "Simple Mail Transfer Protocol", group: "application" },
+    { id: "pop3", name: "POP3", full: "Post Office Protocol v3", group: "application" },
+    { id: "imap", name: "IMAP", full: "Internet Message Access", group: "application" },
+    { id: "ftp", name: "FTP", full: "File Transfer Protocol", group: "application" },
+    { id: "ssh", name: "SSH", full: "Secure Shell", group: "security" },
+    { id: "ws", name: "WebSocket", full: "WebSocket Protocol", group: "application" },
+    { id: "mqtt", name: "MQTT", full: "Message Queuing Telemetry Transport", group: "application" },
+    { id: "sse", name: "SSE", full: "Server-Sent Events", group: "application" },
+    { id: "chunked", name: "Chunked", full: "HTTP Chunked Transfer Encoding", group: "application" },
+    { id: "grpc", name: "gRPC", full: "gRPC Remote Procedure Calls", group: "application" },
+    { id: "snmp", name: "SNMP", full: "Simple Network Management Protocol", group: "monitoring" },
+    { id: "netflow", name: "NetFlow", full: "Cisco NetFlow v9 / IPFIX", group: "monitoring" },
+    { id: "syslog-udp", name: "Syslog/UDP", full: "Syslog over UDP", group: "monitoring" },
+    { id: "syslog-tcp", name: "Syslog/TCP", full: "Syslog over TCP", group: "monitoring" },
+  ],
+  _e = {
+    menu: '<svg viewBox="0 0 18 14" width="18" height="14" aria-hidden="true"><path d="M1.5 2h15M1.5 7h15M1.5 12h15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    close:
+      '<svg viewBox="0 0 14 14" width="13" height="13" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+    dots: '<svg viewBox="0 0 20 6" width="20" height="6" aria-hidden="true"><circle cx="3" cy="3" r="2.1"/><circle cx="10" cy="3" r="2.1"/><circle cx="17" cy="3" r="2.1"/></svg>',
+    chevron:
+      '<svg viewBox="0 0 10 16" width="9" height="14" aria-hidden="true"><path d="M2 2l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    check:
+      '<svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2.2 6.4l2.4 2.4 5.2-5.6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    reset:
+      '<svg viewBox="0 0 18 18" width="16" height="16" aria-hidden="true"><path d="M15 9a6 6 0 1 1-1.9-4.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M14.6 1.6v4.2h-4.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    back: '<svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M7.5 2L3.5 6l4 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    caret:
+      '<svg viewBox="0 0 10 6" width="10" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    globe:
+      '<svg viewBox="0 0 20 20" width="17" height="17" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="8"/><ellipse cx="10" cy="10" rx="3.6" ry="8"/><path d="M2.4 7.2h15.2M2.4 12.8h15.2"/></g></svg>',
+    sun: '<svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true"><circle cx="10" cy="10" r="3.6" fill="currentColor"/><path d="M10 1.6v2.2M10 16.2v2.2M1.6 10h2.2M16.2 10h2.2M4.1 4.1l1.5 1.5M14.4 14.4l1.5 1.5M4.1 15.9l1.5-1.5M14.4 5.6l1.5-1.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    moon: '<svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M16.5 12.6A7 7 0 0 1 7.4 3.5a7 7 0 1 0 9.1 9.1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+  },
+  ur = "protocol-explorer:progress:v1";
+function Sl() {
+  try {
+    const e = JSON.parse(localStorage.getItem(ur));
+    return e && typeof e == "object" ? e : {};
+  } catch {
+    return {};
+  }
+}
+const mn = Sl();
+function bl() {
+  try {
+    localStorage.setItem(ur, JSON.stringify(mn));
+  } catch {}
+}
+function vl(e, t) {
+  const s = (mn[e.id] ??= { seen: [], done: !1 });
+  let a = !1;
+  return (
+    t.started &&
+      !t.done &&
+      !s.seen.includes(t.activeStep) &&
+      (s.seen.push(t.activeStep), (a = !0)),
+    t.done &&
+      !s.done &&
+      ((s.done = !0), (s.seen = e.steps.map((n, o) => o)), (a = !0)),
+    a && bl(),
+    a
+  );
+}
+function Tl(e) {
+  const t = mn[e.id];
+  return t
+    ? t.done
+      ? 1
+      : Math.min(t.seen.length, e.steps.length - 1) / e.steps.length
+    : 0;
+}
+function dn(e) {
+  const t = mn[e.id];
+  return t?.done ? "done" : t?.seen.length ? "progress" : "new";
+}
+const Dt = "cubic-bezier(0.16, 1, 0.3, 1)",
+  El = "cubic-bezier(0.5, 0, 0.75, 0)",
+  kl = window.matchMedia("(prefers-reduced-motion: reduce)"),
+  ge = () => kl.matches,
+  Bt = new WeakMap();
+function fr(
+  e,
+  t,
+  {
+    axis: s = "x",
+    dir: a = 1,
+    distance: n = 24,
+    out: o = 160,
+    inn: r = 300,
+  } = {},
+) {
+  if (ge()) return t();
+  const i = (w) => (s === "x" ? `translateX(${w}px)` : `translateY(${w}px)`),
+    l = Bt.get(e);
+  if (l?.phase === "out") {
+    ((l.update = t), (l.dir = a));
+    return;
+  }
+  const c = getComputedStyle(e),
+    h = { transform: c.transform, opacity: Number(c.opacity) };
+  if (l?.phase === "in" && h.opacity < 0.5) {
+    (l.entering.cancel(),
+      t(),
+      (l.entering = e.animate([h, { transform: "none", opacity: 1 }], {
+        duration: r * (1 - h.opacity),
+        easing: Dt,
+      })),
+      (l.entering.onfinish = () => Bt.get(e) === l && Bt.delete(e)));
+    return;
+  }
+  l?.entering.cancel();
+  const d = { phase: "out", update: t, dir: a };
+  Bt.set(e, d);
+  const y = e.animate([h, { transform: i(-n * a), opacity: 0 }], {
+    duration: o * h.opacity,
+    easing: l ? "linear" : El,
+    fill: "forwards",
+  });
+  y.onfinish = () => {
+    Bt.get(e) === d &&
+      (d.update(),
+      (d.phase = "in"),
+      (d.entering = e.animate(
+        [
+          { transform: i(n * d.dir), opacity: 0 },
+          { transform: "none", opacity: 1 },
+        ],
+        { duration: r, easing: Dt },
+      )),
+      y.cancel(),
+      (d.entering.onfinish = () => Bt.get(e) === d && Bt.delete(e)));
+  };
+}
+const Al = () => 1,
+  rs = (e, t, s = 1, a = 24) =>
+    fr(e, t, { axis: "x", dir: s * Al(), distance: a });
+function Tt(e, t, s = 1, a) {
+  if (e.dataset.text === t) return;
+  const n = e.dataset.text === void 0;
+  e.dataset.text = t;
+  const o = () => {
+    ((e.textContent = t), a?.(e));
+  };
+  if (n) return o();
+  fr(e, o, { axis: "y", dir: s, distance: 10, out: 120, inn: 240 });
+}
+function Cs(e, t) {
+  const s = e.scrollTop,
+    a = Math.max(0, Math.min(t, e.scrollHeight - e.clientHeight)) - s;
+  if (Math.abs(a) < 1) return;
+  if (ge()) return (e.scrollTop = s + a);
+  const n = Math.min(650, 280 + Math.abs(a) * 0.8),
+    o = (e._glide = {});
+  if (!e._glideWatched) {
+    e._glideWatched = !0;
+    const l = () => e._glide && (e._glide.stopped = !0);
+    (e.addEventListener("wheel", l, { passive: !0 }),
+      e.addEventListener("touchstart", l, { passive: !0 }));
+  }
+  let r;
+  const i = (l) => {
+    if (o.stopped || e._glide !== o) return;
+    r ??= l;
+    const c = Math.min(1, (l - r) / n);
+    ((e.scrollTop = s + a * (c < 0.5 ? 4 * c ** 3 : 1 - (2 - 2 * c) ** 3 / 2)),
+      c < 1 && requestAnimationFrame(i));
+  };
+  requestAnimationFrame(i);
+}
+const xl = "modulepreload",
+  $l = function (e) {
+    return "./" + e;
+  },
+  lo = {},
+  Oe = function (t, s, a) {
+    let n = Promise.resolve();
+    if (s && s.length > 0) {
+      let l = function (c) {
+        return Promise.all(
+          c.map((h) =>
+            Promise.resolve(h).then(
+              (d) => ({ status: "fulfilled", value: d }),
+              (d) => ({ status: "rejected", reason: d }),
+            ),
+          ),
+        );
+      };
+      document.getElementsByTagName("link");
+      const r = document.querySelector("meta[property=csp-nonce]"),
+        i = r?.nonce || r?.getAttribute("nonce");
+      n = l(
+        s.map((c) => {
+          if (((c = $l(c)), c in lo)) return;
+          lo[c] = !0;
+          const h = c.endsWith(".css"),
+            d = h ? '[rel="stylesheet"]' : "";
+          if (document.querySelector(`link[href="${c}"]${d}`)) return;
+          const y = document.createElement("link");
+          if (
+            ((y.rel = h ? "stylesheet" : xl),
+            h || (y.as = "script"),
+            (y.crossOrigin = ""),
+            (y.href = c),
+            i && y.setAttribute("nonce", i),
+            document.head.appendChild(y),
+            h)
+          )
+            return new Promise((w, k) => {
+              (y.addEventListener("load", w),
+                y.addEventListener("error", () =>
+                  k(new Error(`Unable to preload CSS for ${c}`)),
+                ));
+            });
+        }),
+      );
+    }
+    function o(r) {
+      const i = new Event("vite:preloadError", { cancelable: !0 });
+      if (((i.payload = r), window.dispatchEvent(i), !i.defaultPrevented))
+        throw r;
+    }
+    return n.then((r) => {
+      for (const i of r || []) i.status === "rejected" && o(i.reason);
+      return t().catch(o);
+    });
+  },
+  B = (e) =>
+    String(e).replace(
+      /[&<>"]/g,
+      (t) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[t],
+    ),
+  mr = "protocol-explorer:lang",
+  Ht = [
+    {
+      code: "ru",
+      name: "Русский",
+      short: "RU",
+      html: "ru",
+      load: () => Oe(() => import("./ru.js"), []),
+    },
+    { code: "en", name: "English", short: "EN", html: "en" },
+  ];
+let yn = "en",
+  os = null;
+const yr = new Set(),
+  Ll = (e, t) =>
+    t ? e.replace(/\{(\w+)\}/g, (s, a) => (a in t ? t[a] : s)) : e;
+function b(e, t) {
+  if (typeof e != "string" || !e) return e;
+  let s = e;
+  if (os) {
+    const a = os.strings[e];
+    if (a !== void 0) s = a;
+    else
+      for (const [n, o] of os.patterns)
+        if (n.test(e)) {
+          s = e.replace(n, o);
+          break;
+        }
+  }
+  return ((s = Ll(s, t)), os?.post ? os.post(s) : s);
+}
+const pn = () => yn,
+  us = () => !1,
+  ds = (e) => (us() ? `⁦${e}⁩` : e),
+  Pl = /[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]/,
+  gr = (e) => us() && !Pl.test(e),
+  At = (e) => e.toLocaleUpperCase(Ht.find((t) => t.code === yn).html),
+  j = (e, t = !1) =>
+    `data-t="${B(e)}"${t ? " data-t-upper" : ""}>${B(t ? At(b(e)) : b(e))}`;
+function Cl(e) {
+  (e.querySelectorAll("[data-t]").forEach((t) => {
+    const s = b(t.dataset.t);
+    t.textContent = t.hasAttribute("data-t-upper") ? At(s) : s;
+  }),
+    e
+      .querySelectorAll("[data-t-title]")
+      .forEach((t) => (t.title = b(t.dataset.tTitle))),
+    e
+      .querySelectorAll("[data-t-label]")
+      .forEach((t) => t.setAttribute("aria-label", b(t.dataset.tLabel))));
+}
+async function Rl(e) {
+  const t = Ht.find((o) => o.code === e);
+  if (!t?.load) return null;
+  const { strings: s, patterns: a = [], post: n } = (await t.load()).default;
+  return { strings: s, patterns: a, post: n };
+}
+let co = 0;
+async function wr(e, t = !0) {
+  const s = ++co,
+    a = Ht.some((r) => r.code === e) ? e : "en",
+    n = await Rl(a);
+  if (s !== co) return;
+  ((os = n), (yn = a));
+  const o = Ht.find((r) => r.code === a);
+  if (
+    ((document.documentElement.lang = o.html),
+    (document.documentElement.dir = "ltr"),
+    t)
+  )
+    try {
+      localStorage.setItem(mr, a);
+    } catch {}
+  yr.forEach((r) => r(a));
+}
+const Il = (e) => yr.add(e);
+async function Ol() {
+  let e = "ru";
+  try {
+    e =
+      localStorage.getItem(mr) ||
+      (/^(ru|be|uk|kk)\b/i.test(navigator.language || "ru") ? "ru" : "en");
+  } catch {}
+  e && (await wr(e, !1).catch(() => {}));
+}
+const Nl = `
+<svg class="logo-cube" viewBox="0 0 64 64" aria-hidden="true">
+  <g fill="currentColor" stroke="var(--bg)" stroke-width="2.4" stroke-linejoin="round">
+    <path d="M32 3 L58 16.5 L32 30 L6 16.5 Z" />
+    <path d="M6 16.5 L32 30 L32 45.5 L6 32 Z" />
+    <path d="M58 16.5 L32 30 L32 45.5 L58 32 Z" />
+    <path d="M6 32 L32 45.5 L32 61 L6 47.5 Z" />
+    <path d="M58 32 L32 45.5 L32 61 L58 47.5 Z" />
+  </g>
+</svg>`;
+function ql() {
+  const e = Xt.map(
+    (t, s) => `<span class="learning-seg"><i style="--i:${s}"></i></span>`,
+  ).join("");
+  return `
+  <div class="learning">
+    <div class="learning-head">
+      <span class="learning-label" ${j("LEARNING PROGRESS")}</span>
+      <span class="learning-value"></span>
+    </div>
+    <div class="learning-bars" role="img">${e}</div>
+    <div class="learning-sub"><span class="learning-done"></span> / ${Xt.length} <span ${j("COMPLETE")}</span> <span class="dot">·</span> <span class="learning-active"></span> <span ${j("IN PROGRESS")}</span></div>
+  </div>`;
+}
+function ba(e, t) {
+  const s = Xt.map((o) => ({
+      name: o.name,
+      value: Tl(t[o.id]),
+      status: dn(t[o.id]),
+    })).sort((o, r) => r.value - o.value),
+    a = Math.round((s.reduce((o, r) => o + r.value, 0) / s.length) * 100),
+    n = e.querySelector(".learning");
+  (n.querySelectorAll(".learning-seg").forEach((o, r) => {
+    const i = s[r];
+    (o.classList.toggle("partial", i.value > 0 && i.value < 1),
+      (o.title = `${i.name}: ${Math.round(i.value * 100)}%`),
+      (o.firstElementChild.style.width = `${i.value * 100}%`));
+  }),
+    n
+      .querySelector(".learning-bars")
+      .setAttribute("aria-label", b("{pct}% complete", { pct: a })),
+    Tt(n.querySelector(".learning-value"), `${a}%`),
+    Tt(
+      n.querySelector(".learning-done"),
+      String(s.filter((o) => o.status === "done").length),
+    ),
+    Tt(
+      n.querySelector(".learning-active"),
+      String(s.filter((o) => o.status === "progress").length),
+    ));
+}
+function Ml() {
+  return `
+  <a class="credit" href="https://x.com/DilumSanjaya" target="_blank" rel="noopener noreferrer" data-t-title="Dilum Sanjaya on X" title="${b("Dilum Sanjaya on X")}">
+    <span class="credit-label" ${j("DESIGNED BY")}</span>
+    <span class="credit-name">
+      <svg class="credit-x" viewBox="0 0 24 24" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M17.75 3h3.07l-6.71 7.67L22 21h-6.18l-4.84-6.33L5.44 21H2.37l7.18-8.2L2 3h6.33l4.38 5.79L17.75 3Zm-1.08 16.18h1.7L7.4 4.73H5.58l11.09 14.45Z"/></svg>
+      DilumSanjaya
+    </span>
+  </a>`;
+}
+function Dl() {
+  const e = Ht.map(
+    (
+      t,
+    ) => `<button type="button" role="menuitemradio" data-lang="${t.code}" lang="${t.html}" aria-checked="${t.code === pn()}">
+      <span>${t.name}</span><b>${t.short}</b></button>`,
+  ).join("");
+  return `
+  <div class="lang">
+    <button class="menu-btn" type="button" aria-haspopup="menu" aria-expanded="false" data-t-label="Language" aria-label="${b("Language")}" data-t-title="Language" title="${b("Language")}">
+      ${_e.globe}<span class="lang-code">${Ht.find((t) => t.code === pn()).short}</span>${_e.caret}
+    </button>
+    <div class="lang-menu" role="menu" hidden>${e}</div>
+  </div>`;
+}
+function Hl(e, t) {
+  const s = e.querySelector(".lang"),
+    a = s.querySelector(".menu-btn"),
+    n = s.querySelector(".lang-menu"),
+    o = () => [...n.querySelectorAll("[data-lang]")];
+  function r(l, c = !0) {
+    l !== !n.hidden &&
+      ((n.hidden = !l),
+      a.setAttribute("aria-expanded", l),
+      l
+        ? (c &&
+            (
+              o().find((h) => h.getAttribute("aria-checked") === "true") ??
+              o()[0]
+            ).focus(),
+          document.addEventListener("pointerdown", i, !0))
+        : document.removeEventListener("pointerdown", i, !0));
+  }
+  const i = (l) => !s.contains(l.target) && r(!1, !1);
+  (a.addEventListener("click", () => r(n.hidden, !0)),
+    n.addEventListener("click", async (l) => {
+      const c = l.target.closest("[data-lang]");
+      if (c && (r(!1), a.focus(), c.dataset.lang !== pn())) {
+        s.classList.add("is-loading");
+        try {
+          await t(c.dataset.lang);
+        } finally {
+          s.classList.remove("is-loading");
+        }
+      }
+    }),
+    s.addEventListener("keydown", (l) => {
+      if (n.hidden) return;
+      const c = o(),
+        h = c.indexOf(document.activeElement);
+      l.key === "ArrowDown" || l.key === "ArrowUp"
+        ? (l.preventDefault(),
+          c[
+            (h + (l.key === "ArrowDown" ? 1 : -1) + c.length) % c.length
+          ].focus())
+        : l.key === "Home" || l.key === "End"
+          ? (l.preventDefault(), c[l.key === "Home" ? 0 : c.length - 1].focus())
+          : l.key === "Escape"
+            ? (l.preventDefault(), r(!1), a.focus())
+            : l.key === "Tab" && r(!1, !1);
+    }));
+}
+function _l(e) {
+  const t = pn();
+  ((e.querySelector(".lang-code").textContent = Ht.find(
+    (s) => s.code === t,
+  ).short),
+    e
+      .querySelectorAll(".lang-menu [data-lang]")
+      .forEach((s) => s.setAttribute("aria-checked", s.dataset.lang === t)));
+}
+function Fl(e) {
+  (_l(e),
+    e
+      .querySelectorAll(".osi-chips span")
+      .forEach(
+        (t, s) =>
+          (t.title = b("Layer {n}: {name}", { n: s + 1, name: b(va[s]) })),
+      ),
+    delete e.dataset.lesson);
+}
+const va = [
+  "Physical",
+  "Data Link",
+  "Network",
+  "Transport",
+  "Session",
+  "Presentation",
+  "Application",
+];
+function Ta(e) {
+  Sr(e.querySelector(".topbar .now-step"));
+  const t = e.querySelector(".brand-text h1"),
+    s = e.querySelector(".brand-text p");
+  if (!t?.offsetWidth || !s) return;
+  s.style.letterSpacing = s.style.fontSize = "";
+  const a = ea,
+    n = a(t),
+    o = a(s);
+  if (o <= n) return;
+  const r = getComputedStyle(s),
+    i = parseFloat(r.fontSize),
+    l = parseFloat(r.letterSpacing) / i,
+    c = 0.02;
+  s.style.letterSpacing = `${c}em`;
+  const h = a(s);
+  h <= n
+    ? (s.style.letterSpacing = `${l - ((o - n) / (o - h)) * (l - c)}em`)
+    : (s.style.fontSize = `${(i * n) / h}px`);
+}
+function Kl() {
+  return `
+  <div class="now">
+    <div class="now-label" ${j("NOW LEARNING")}</div>
+    <div class="now-title"><span class="now-name"></span></div>
+    <div class="now-progress">
+      <span class="now-dots"></span>
+      <span class="now-step"></span>
+    </div>
+  </div>`;
+}
+function Ul() {
+  const e = va
+    .map(
+      (t, s) =>
+        `<span data-layer="${s + 1}" title="${b("Layer {n}: {name}", { n: s + 1, name: b(t) })}">${s + 1}</span>`,
+    )
+    .join("");
+  return `
+  <div class="osi">
+    <div class="osi-head">
+      <span class="osi-label" ${j("OSI LAYER")}</span>
+      <span class="osi-name"></span>
+    </div>
+    <div class="osi-chips"><i class="osi-marker"></i>${e}</div>
+  </div>`;
+}
+function Bl() {
+  return `
+  <header class="topbar">
+    <button class="drawer-btn" type="button" data-t-label="Protocols" aria-label="${b("Protocols")}" aria-expanded="false" aria-controls="protocols">${_e.menu}<span ${j("PROTOCOLS")}</span></button>
+    <div class="brand">
+      <div class="logo-frame">
+        <span class="corner tl"></span><span class="corner tr"></span>
+        <span class="corner bl"></span><span class="corner br"></span>
+        ${Nl}
+      </div>
+      <div class="brand-text">
+        <h1>PROTOCOL <em>EXPLORER</em></h1>
+        <p ${j("LEARN HOW THE INTERNET WORKS")}</p>
+      </div>
+    </div>
+
+    <span class="topbar-sep"></span>
+    ${Kl()}
+    <span class="topbar-sep"></span>
+    ${Ul()}
+
+    <div class="topbar-tools">
+      <span class="topbar-sep"></span>
+      ${ql()}
+      <span class="topbar-sep"></span>
+      ${Ml()}
+      <span class="topbar-sep"></span>
+      ${Dl()}
+      <div class="theme-toggle" role="group" data-t-label="Theme" aria-label="${b("Theme")}">
+        <button type="button" data-theme-choice="light" aria-pressed="false" data-t-label="Light mode" aria-label="${b("Light mode")}" data-t-title="Light mode" title="${b("Light mode")}">${_e.sun}</button>
+        <button type="button" data-theme-choice="dark" aria-pressed="false" data-t-label="Dark mode" aria-label="${b("Dark mode")}" data-t-title="Dark mode" title="${b("Dark mode")}">${_e.moon}</button>
+      </div>
+    </div>
+  </header>`;
+}
+function Gl(e, t) {
+  const s = e.dataset.layer ? Number(e.dataset.layer) : null;
+  ((e.dataset.lesson = t.id),
+    (e.dataset.layer = t.layer),
+    Tt(e.querySelector(".now-name"), `${t.name} · ${At(b(t.title))}`),
+    Tt(
+      e.querySelector(".osi-name"),
+      At(b(va[t.layer - 1])),
+      s && t.layer < s ? -1 : 1,
+    ));
+  const a = e.querySelector(".now-dots");
+  (a.children.length !== t.steps.length &&
+    (a.innerHTML = t.steps.map(() => "<i></i>").join("")),
+    a.style.setProperty("--dots", t.steps.length));
+  const n = e.querySelector(`.osi-chips [data-layer="${t.layer}"]`);
+  (e
+    .querySelectorAll(".osi-chips span")
+    .forEach((o) => o.classList.toggle("is-active", o === n)),
+    po(e),
+    s === null &&
+      (requestAnimationFrame(() =>
+        e.querySelector(".osi-marker").classList.add("is-ready"),
+      ),
+      new ResizeObserver(() => po(e, !1)).observe(
+        e.querySelector(".osi-chips"),
+      )));
+}
+function po(e, t = !0) {
+  const s = e.querySelector(".osi-chips .is-active"),
+    a = e.querySelector(".osi-marker");
+  !s ||
+    !s.offsetWidth ||
+    (t || (a.style.transition = "none"),
+    (a.style.left = `${s.offsetLeft}px`),
+    (a.style.width = `${s.offsetWidth}px`),
+    t || requestAnimationFrame(() => a.style.removeProperty("transition")));
+}
+function Yl(e, t, s) {
+  (e.dataset.lesson !== s.id && Gl(e, s),
+    e
+      .querySelectorAll(".now-dots i")
+      .forEach((o, r) => (o.className = `is-${t.steps[r]}`)));
+  const a = s.steps[t.activeStep],
+    n = t.done
+      ? b("LESSON COMPLETE")
+      : t.started
+        ? b("STEP {n}/{total} · {title}", {
+            n: t.activeStep + 1,
+            total: s.steps.length,
+            title: At(b(a.title)),
+          })
+        : b("OVERVIEW · {n} STEPS", { n: s.steps.length });
+  Tt(e.querySelector(".now-step"), n, t.started ? 1 : -1, Sr);
+}
+function Sr(e) {
+  if (!e) return;
+  e.style.letterSpacing = "";
+  const t = e.getBoundingClientRect().width - 0.5,
+    s = ea(e);
+  if (t <= 0 || s <= t) return;
+  const a = getComputedStyle(e).letterSpacing;
+  e.style.letterSpacing = "0px";
+  const n = ea(e);
+  e.style.letterSpacing = n >= t ? "0px" : `calc(${a} * ${(t - n) / (s - n)})`;
+}
+const ea = (e) => {
+    const t = document.createRange();
+    return (t.selectNodeContents(e), t.getBoundingClientRect().width);
+  },
+  ta = "protocol-explorer:theme",
+  Wl = window.matchMedia("(prefers-color-scheme: dark)"),
+  jl = { light: "#fdfdfe", dark: "#0b1020" };
+function sa(e, t) {
+  let s = null;
+  try {
+    s = localStorage.getItem(ta);
+  } catch {}
+  if (s)
+    for (const a of document.querySelectorAll('meta[name="theme-color"]'))
+      a.content = jl[t];
+  e.querySelectorAll("[data-theme-choice]").forEach((a) => {
+    const n = a.dataset.themeChoice === t;
+    (a.classList.toggle("is-active", n), a.setAttribute("aria-pressed", n));
+  });
+}
+function ho(e, t, s) {
+  const a = document.documentElement;
+  if (a.dataset.theme === t) return sa(e, t);
+  const n = () => {
+    ((a.dataset.theme = t), sa(e, t));
+  };
+  if (
+    !s ||
+    !document.startViewTransition ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  )
+    return n();
+  const o = s.getBoundingClientRect(),
+    r = o.left + o.width / 2,
+    i = o.top + o.height / 2,
+    l = Math.hypot(Math.max(r, innerWidth - r), Math.max(i, innerHeight - i));
+  document
+    .startViewTransition(n)
+    .ready.then(() =>
+      a.animate(
+        {
+          clipPath: [
+            `circle(0px at ${r}px ${i}px)`,
+            `circle(${l}px at ${r}px ${i}px)`,
+          ],
+        },
+        {
+          duration: 650,
+          easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+          pseudoElement: "::view-transition-new(root)",
+        },
+      ),
+    );
+}
+function Vl(e) {
+  (sa(e, document.documentElement.dataset.theme),
+    e.querySelector(".theme-toggle").addEventListener("click", (t) => {
+      const s = t.target.closest("[data-theme-choice]");
+      if (s) {
+        try {
+          localStorage.setItem(ta, s.dataset.themeChoice);
+        } catch {}
+        ho(e, s.dataset.themeChoice, s);
+      }
+    }),
+    Wl.addEventListener("change", (t) => {
+      let s = null;
+      try {
+        s = localStorage.getItem(ta);
+      } catch {}
+      s || ho(e, t.matches ? "dark" : "light");
+    }));
+}
+const Xl = [
+  ["all", "ALL"],
+  ["application", "APPLICATION"],
+  ["security", "SECURITY"],
+  ["monitoring", "MONITORING"],
+];
+function Ql(e) {
+  return `<div class="steps-wrap"><div class="steps-clip"><ol class="steps">${e.steps
+    .map(
+      (s, a) => `
+      <li class="step" data-step="${a}" style="--i:${a}">
+        <button class="step-btn" type="button">
+          <span class="step-num"><span>${a + 1}</span>${_e.check.replace("<path", '<path pathLength="1"')}</span>
+          <span class="step-text">
+            <span class="step-title" ${j(s.title, !0)}</span>
+            <span class="step-desc" ${j(s.desc)}</span>
+          </span>
+        </button>
+      </li>`,
+    )
+    .join("")}</ol></div></div>`;
+}
+function zl(e) {
+  const t = Xt.map((a) => {
+      const n = e[a.id];
+      return `
+      <li class="proto ${n ? "has-lesson" : ""}" data-group="${a.group}" ${n ? `data-lesson="${a.id}"` : ""}>
+        <button class="proto-row" type="button" aria-expanded="false">
+          <span class="status-dot ${dn(n)}" data-status="${dn(n)}"></span>
+          <span class="proto-text">
+            <span class="proto-name">${a.name}</span>
+            <span class="proto-full" ${j(a.full)}</span>
+          </span>
+          <span class="proto-chev">${_e.chevron}</span>
+        </button>
+        ${n ? Ql(n) : ""}
+      </li>`;
+    }).join(""),
+    s = Xl.map(([a, n], o) => {
+      const r =
+        a === "all" ? Xt.length : Xt.filter((i) => i.group === a).length;
+      return `<button class="tab ${o === 0 ? "is-active" : ""}" type="button" role="tab" aria-selected="${o === 0}" data-group="${a}">
+      <span ${j(n)}</span><span class="tab-count">${r}</span>
+    </button>`;
+    }).join("");
+  return `
+  <aside class="panel sidebar" id="protocols">
+    <div class="panel-head">
+      <h2 class="panel-title" ${j("INTERNET PROTOCOLS")}</h2>
+      <button class="more" type="button" data-t-label="More" aria-label="${b("More")}">${_e.dots}</button>
+      <button class="drawer-close" type="button" data-t-label="Close the protocol list" aria-label="${b("Close the protocol list")}" data-t-title="Close (Esc)" title="${b("Close (Esc)")}">${_e.close}</button>
+    </div>
+    <div class="tabs" role="tablist">${s}<span class="tab-indicator"></span></div>
+    <ul class="proto-list">${t}</ul>
+  </aside>`;
+}
+function js(e) {
+  const t = e.querySelector(".tab.is-active"),
+    s = e.querySelector(".tab-indicator");
+  ((s.style.left = `${t.offsetLeft}px`),
+    (s.style.width = `${t.offsetWidth}px`));
+}
+const Zl = "cubic-bezier(0.4, 0, 0.2, 1)",
+  br = (e) => e.getBoundingClientRect().height / e.offsetHeight || 1;
+function Jl(e, t, { rect: s, opacity: a }, n) {
+  const o = e.getBoundingClientRect(),
+    r = t.cloneNode(!0);
+  (r.classList.add("proto-ghost"),
+    r.removeAttribute("data-lesson"),
+    (r.dataset.ghostOf = t.querySelector(".proto-name").textContent),
+    Object.assign(r.style, {
+      top: `${(s.top - o.top) / n + e.scrollTop}px`,
+      left: `${(s.left - o.left) / n}px`,
+      width: `${t.offsetWidth}px`,
+    }),
+    e.appendChild(r),
+    (r.animate([{ opacity: a }, { opacity: 0 }], {
+      duration: 60 + 110 * a,
+      easing: "ease-in",
+      fill: "forwards",
+    }).onfinish = () => r.remove()));
+}
+function ec(e, t) {
+  const s = e.querySelector(".proto-list"),
+    a = [...s.querySelectorAll(":scope > .proto:not(.proto-ghost)")],
+    n = br(s),
+    o = ge(),
+    r = new Map();
+  for (const h of a) {
+    if (h.hidden) continue;
+    const d = h.getBoundingClientRect();
+    r.set(h, {
+      rect: d,
+      top: d.top,
+      opacity: Number(getComputedStyle(h).opacity),
+      moving: h.getAnimations().length > 0,
+    });
+  }
+  let i = 0;
+  for (const h of a)
+    !(t === "all" || h.dataset.group === t) &&
+      !h.hidden &&
+      !o &&
+      (Jl(s, h, r.get(h), n), i++);
+  for (const h of a)
+    (h.getAnimations().forEach((d) => d.cancel()),
+      (h.hidden = !(t === "all" || h.dataset.group === t)));
+  if (o) return;
+  const l = [];
+  for (const h of a) {
+    const d = r.get(h);
+    if (h.hidden || !d) continue;
+    const y = h.getBoundingClientRect();
+    l.push([Math.min(d.top, y.top), Math.max(d.top, y.top) + y.height]);
+  }
+  let c = 0;
+  for (const h of a) {
+    if (h.hidden) continue;
+    const d = r.get(h);
+    if (d) {
+      const y = (d.top - h.getBoundingClientRect().top) / n;
+      if (Math.abs(y) < 0.5 && d.opacity >= 1) continue;
+      h.animate(
+        [
+          { transform: `translateY(${y}px)`, opacity: d.opacity },
+          { transform: "none", opacity: 1 },
+        ],
+        {
+          duration: 360,
+          delay: d.moving || !i ? 0 : 90,
+          easing: Zl,
+          fill: "backwards",
+        },
+      );
+    } else {
+      const y = h.getBoundingClientRect(),
+        w = l.some(
+          ([k, g]) => k < y.bottom - 4 && g > y.top + 4 && g - k > y.height + 8,
+        );
+      h.animate(
+        [
+          { opacity: 0, transform: "translateY(8px)" },
+          { opacity: 1, transform: "none" },
+        ],
+        {
+          duration: 300,
+          delay: (w ? 250 : i ? 150 : 70) + c++ * 22,
+          easing: Dt,
+          fill: "backwards",
+        },
+      );
+    }
+  }
+}
+function tc(e, { onStep: t, onSelect: s }) {
+  js(e);
+  const a = new ResizeObserver(() => js(e));
+  (e.querySelectorAll(".tabs, .tab").forEach((n) => a.observe(n)),
+    document.fonts.ready.then(() => {
+      (js(e), e.querySelector(".tabs").classList.add("is-ready"));
+    }),
+    e.addEventListener("click", (n) => {
+      const o = n.target.closest(".proto.is-open .step-btn");
+      o && t(Number(o.parentElement.dataset.step));
+      const r = n.target.closest(".proto.has-lesson > .proto-row");
+      r && s(r.parentElement.dataset.lesson);
+      const i = n.target.closest(".tab");
+      i &&
+        !i.classList.contains("is-active") &&
+        (e.querySelectorAll(".tab").forEach((l) => {
+          (l.classList.toggle("is-active", l === i),
+            l.setAttribute("aria-selected", l === i));
+        }),
+        js(e),
+        ec(e, i.dataset.group));
+    }));
+}
+function sc(e, t) {
+  const s = !e.dataset.lesson;
+  e.dataset.lesson = t;
+  for (const n of e.querySelectorAll(".proto.has-lesson")) {
+    const o = n.dataset.lesson === t;
+    o !== n.classList.contains("is-open") &&
+      (o &&
+        (n.classList.add("instant"),
+        n.querySelectorAll(".step").forEach((r) => {
+          (r.classList.remove("is-active", "is-done"),
+            r.style.removeProperty("--delay"));
+        }),
+        n.offsetWidth,
+        n.classList.remove("instant")),
+      n.classList.toggle("is-active", o),
+      n.classList.toggle("is-open", o),
+      n.querySelector(".proto-row").setAttribute("aria-expanded", o));
+  }
+  const a = e.querySelector(`.proto[data-lesson="${t}"]`);
+  s ||
+    setTimeout(
+      () => e.dataset.lesson === t && nc(e.querySelector(".proto-list"), a),
+      460,
+    );
+}
+function nc(e, t) {
+  const s = br(e),
+    a = e.getBoundingClientRect(),
+    n = t.getBoundingClientRect(),
+    o = (n.top - a.top) / s + e.scrollTop,
+    r = n.height / s,
+    i = e.clientHeight,
+    l = 8;
+  r + 2 * l > i || o < e.scrollTop + l
+    ? Cs(e, o - l)
+    : o + r > e.scrollTop + i - l && Cs(e, o + r - i + l);
+}
+function ac(e, t) {
+  e.querySelectorAll(".proto[data-lesson]").forEach((s) => {
+    const a = s.querySelector(".status-dot"),
+      n = dn(t[s.dataset.lesson]);
+    a.dataset.status !== n &&
+      ((a.dataset.status = n),
+      (a.className = `status-dot ${n}`),
+      ge() || (a.offsetWidth, a.classList.add("is-changed")));
+  });
+}
+function oc(e, t, s) {
+  e.dataset.lesson !== s.id && sc(e, s.id);
+  const a = [...e.querySelectorAll(`.proto[data-lesson="${s.id}"] .step`)],
+    n = a.filter(
+      (r, i) => t.steps[i] === "done" && !r.classList.contains("is-done"),
+    ),
+    o = a
+      .filter(
+        (r, i) => t.steps[i] !== "done" && r.classList.contains("is-done"),
+      )
+      .reverse();
+  (a.forEach((r) => r.style.setProperty("--delay", "0ms")),
+    n.forEach((r, i) => r.style.setProperty("--delay", `${i * 90}ms`)),
+    o.forEach((r, i) => r.style.setProperty("--delay", `${i * 50}ms`)),
+    a.forEach((r, i) => {
+      (t.steps[i] === "active" &&
+        !r.classList.contains("is-active") &&
+        r.style.setProperty("--delay", `${n.length * 90}ms`),
+        r.classList.toggle("is-active", t.steps[i] === "active"),
+        r.classList.toggle("is-done", t.steps[i] === "done"));
+    }));
+}
+const rc = Math.cos(Math.PI / 6),
+  ic = 0.5,
+  St = "var(--k-line-1b3fae)";
+function gn(e, t) {
+  return (s, a, n = 0) => [e + (s - a) * rc, t + (s + a) * ic - n];
+}
+const vr = ([e, t]) => `${e.toFixed(2)},${t.toFixed(2)}`,
+  Ce = (e, t = "") => `<polygon points="${e.map(vr).join(" ")}" ${t}/>`,
+  We = (e, t = "") =>
+    `<polyline points="${e.map(vr).join(" ")}" fill="none" ${t}/>`;
+function wn(e, t, s, a, n, o, r) {
+  return {
+    top: (i, l) => e(t + i, s + l, a + r),
+    left: (i, l) => e(t + i, s + o, a + l),
+    right: (i, l) => e(t + n, s + o - i, a + l),
+  };
+}
+const Q = (e, t, s, a, n, o = "") =>
+  Ce([e(t, s), e(t + a, s), e(t + a, s + n), e(t, s + n)], o);
+function lc(e, t, s, a, n = "") {
+  const o = [];
+  for (let r = 0; r < 28; r++) {
+    const i = (r / 28) * Math.PI * 2;
+    o.push(e(t + a * Math.cos(i), s + a * Math.sin(i)));
+  }
+  return Ce(o, n);
+}
+function qs(e, t, s, a, n, o, r, i = {}) {
+  const {
+      top: l = "var(--k-fill-f4f7fe)",
+      left: c = "var(--k-fill-e5edfc)",
+      right: h = "var(--k-fill-d0def8)",
+      stroke: d = St,
+      sw: y = 1.7,
+    } = i,
+    w = `stroke="${d}" stroke-width="${y}" stroke-linejoin="round"`;
+  return [
+    Ce(
+      [
+        e(t, s, a + r),
+        e(t + n, s, a + r),
+        e(t + n, s + o, a + r),
+        e(t, s + o, a + r),
+      ],
+      `fill="${l}" ${w}`,
+    ),
+    Ce(
+      [
+        e(t, s + o, a),
+        e(t + n, s + o, a),
+        e(t + n, s + o, a + r),
+        e(t, s + o, a + r),
+      ],
+      `fill="${c}" ${w}`,
+    ),
+    Ce(
+      [
+        e(t + n, s + o, a),
+        e(t + n, s, a),
+        e(t + n, s, a + r),
+        e(t + n, s + o, a + r),
+      ],
+      `fill="${h}" ${w}`,
+    ),
+  ].join("");
+}
+function cc(e, t, s, a, n, o, r) {
+  let i = "";
+  for (let l = o; l < a; l += o) i += We([e(t + l, s), e(t + l, s + n)], r);
+  for (let l = o; l < n; l += o) i += We([e(t, s + l), e(t + a, s + l)], r);
+  return i;
+}
+const ne = `stroke="${St}"`,
+  qt = `${ne} stroke-width="1.3" stroke-linejoin="round"`,
+  Tr = {
+    top: "url(#face-top)",
+    left: "url(#face-left)",
+    right: "url(#face-right)",
+  },
+  Sn = (e, t, s, a, n, o) =>
+    Ce(
+      [e(t + a, s), e(t + a + o, s), e(t + a + o, s + n), e(t + a, s + n)],
+      'class="iso-shadow"',
+    );
+function dc(e, t) {
+  const s = gn(e, t),
+    a = 70,
+    n = 70,
+    o = 33,
+    r = wn(s, 0, 0, 0, a, n, o);
+  let i = Sn(s, 0, 0, a, n, 34);
+  i += qs(s, 0, 0, 0, a, n, o, { ...Tr, sw: 2.2 });
+  const l = [
+    [9, 7],
+    [19.5, 5],
+    [28, 7],
+    [39, 5],
+  ];
+  for (const [w, k] of l)
+    i += Q(
+      r.top,
+      w,
+      30.5,
+      k,
+      5,
+      `fill="var(--k-fill-a9c0ee)" ${ne} stroke-width="1.5"`,
+    );
+  i += Q(r.top, 30, 32, 3, 2, `fill="${St}" stroke="none"`);
+  const c = r.left;
+  ((i += lc(c, 9.5, 17, 5, `fill="none" ${ne} stroke-width="2.6"`)),
+    (i += Q(c, 17, 13, 3.6, 8, `fill="${St}" stroke="none"`)),
+    (i += Q(c, 15.5, 20, 6.6, 2, `fill="${St}" stroke="none"`)),
+    (i += Q(c, 15.5, 11.5, 6.6, 2, `fill="${St}" stroke="none"`)),
+    (i += Q(
+      c,
+      30,
+      8,
+      13,
+      11,
+      `fill="var(--k-fill-f4f7fe)" ${ne} stroke-width="2"`,
+    )));
+  const h = r.right;
+  ((i += Q(
+    h,
+    9,
+    9,
+    52,
+    15,
+    `fill="var(--k-fill-e8effd)" ${ne} stroke-width="2"`,
+  )),
+    (i += Q(h, 13, 12, 44, 9, `fill="var(--k-fill-c4d5f6)" ${qt}`)));
+  for (let w = 0; w < 3; w++)
+    i += We(
+      [h(16, 14 + w * 2.6), h(54, 14 + w * 2.6)],
+      'stroke="var(--k-line-8ea9e2)" stroke-width="0.9"',
+    );
+  const [d, y] = r.top(16, 8);
+  return (
+    (i += `<ellipse cx="${d}" cy="${y}" rx="5.2" ry="2.8" fill="var(--k-fill-c9d8f6)" ${ne} stroke-width="1.5"/>`),
+    (i += `<path d="M${d - 3.2},${y} L${d - 1.4},${y - 40} L${d + 1.4},${y - 40} L${d + 3.2},${y} Z" fill="var(--k-fill-c9d8f6)" ${ne} stroke-width="1.6" stroke-linejoin="round"/>`),
+    (i += `<circle cx="${d}" cy="${y - 43.5}" r="4" fill="var(--k-fill-f4f7fe)" ${ne} stroke-width="1.8"/>`),
+    `<g class="device router">${i}</g>`
+  );
+}
+function Vs(e, t) {
+  const s = gn(e, t),
+    a = 40.5,
+    n = 40.5,
+    o = 13.6,
+    r = 2.9;
+  let i = Sn(s, 0, 0, a, n, 30);
+  i += qs(s, 1.5, 1.5, 0, a - 3, n - 3, o * 3 + r * 2, {
+    top: "var(--k-fill-2f55c2)",
+    left: "var(--k-fill-2f55c2)",
+    right: "var(--k-fill-24479f)",
+  });
+  for (let l = 0; l < 3; l++) {
+    const c = l * (o + r),
+      h = wn(s, 0, 0, c, a, n, o);
+    ((i += qs(s, 0, 0, c, a, n, o, { ...Tr, sw: 1.9 })),
+      l === 0
+        ? ((i += Q(
+            h.left,
+            4,
+            3.8,
+            7,
+            5.6,
+            `fill="var(--k-fill-5ed6ea)" ${qt}`,
+          )),
+          (i += Q(
+            h.left,
+            13,
+            3.8,
+            9,
+            5.6,
+            `fill="var(--k-fill-d7e3fa)" ${qt}`,
+          )),
+          (i += Q(
+            h.left,
+            24,
+            3.8,
+            6,
+            5.6,
+            `fill="var(--k-fill-5ed6ea)" ${qt}`,
+          )))
+        : ((i += Q(
+            h.left,
+            4,
+            3.8,
+            27,
+            5.6,
+            `fill="var(--k-fill-5ed6ea)" ${qt}`,
+          )),
+          (i += Q(
+            h.left,
+            4,
+            3.8,
+            9,
+            5.6,
+            'fill="var(--k-fill-a6eef6)" stroke="none"',
+          ))),
+      (i += Q(h.right, 4, 3.8, 32, 5.6, `fill="var(--k-fill-9fbcf0)" ${qt}`)),
+      l === 2 &&
+        ((i += Q(
+          h.top,
+          8.5,
+          8.5,
+          23.5,
+          23.5,
+          `fill="var(--k-fill-dfe8fb)" ${ne} stroke-width="1.6"`,
+        )),
+        (i += cc(
+          h.top,
+          8.5,
+          8.5,
+          23.5,
+          23.5,
+          2.6,
+          'stroke="var(--k-line-7d9be0)" stroke-width="0.6"',
+        ))));
+  }
+  return `<g class="device dns">${i}</g>`;
+}
+function uo(e, t) {
+  const s = gn(e, t),
+    a = 56.6,
+    n = 56.6,
+    o = 70,
+    r = wn(s, 0, 0, 0, a, n, o);
+  let i = Sn(s, 0, 0, a, n, 40);
+  ((i += qs(s, 0, 0, 0, a, n, o, {
+    top: "url(#face-top)",
+    left: "var(--k-fill-f4f8ff)",
+    right: "url(#face-right)",
+    sw: 2.3,
+  })),
+    (i += Q(
+      r.top,
+      10,
+      10,
+      37,
+      37,
+      `fill="var(--k-fill-c9d8f4)" ${ne} stroke-width="1.2"`,
+    )));
+  for (let d = 2.2; d < 37; d += 2.2)
+    i += We(
+      [r.top(10 + d, 10), r.top(10 + d, 47)],
+      'stroke="var(--k-line-9db5e6)" stroke-width="0.7"',
+    );
+  const l = r.left;
+  for (let d = 0; d < 3; d++) {
+    const y = 6 + d * 20.5;
+    ((i += Q(
+      l,
+      4.5,
+      y,
+      47.5,
+      17,
+      `fill="var(--k-fill-f5f8ff)" ${ne} stroke-width="2"`,
+    )),
+      (i += Q(l, 7.5, y + 3, 41.5, 11, `fill="var(--k-fill-e3ebfc)" ${qt}`)));
+    const w = [
+      [10, 5],
+      [16, 3],
+      [21, 3],
+      [36, 3.4],
+    ];
+    for (const [k, g] of w)
+      i += Q(l, k, y + 5, g, 7, 'fill="var(--k-fill-3d63c9)" stroke="none"');
+    i += Q(l, 26, y + 6, 7, 5, 'fill="var(--k-fill-a7bff0)" stroke="none"');
+  }
+  const c = r.right,
+    h = `fill="none" ${ne} stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"`;
+  return (
+    (i += Q(c, 8, 34, 40, 27, `fill="var(--k-fill-c7d8f7)" ${h}`)),
+    (i += We([c(8, 52), c(30, 52), c(30, 46), c(48, 46)], h)),
+    (i += We([c(14, 40), c(26, 40), c(26, 34)], h)),
+    (i += We([c(36, 61), c(36, 54), c(44, 54)], h)),
+    (i += Q(c, 8, 9, 16, 15, `fill="var(--k-fill-c7d8f7)" ${h}`)),
+    (i += Q(c, 30, 9, 16, 15, `fill="var(--k-fill-c7d8f7)" ${h}`)),
+    (i += We([c(30, 19), c(36, 19), c(36, 24)], h)),
+    (i += `<circle cx="${c(47, 1)[0]}" cy="${c(47, 1)[1]}" r="2.6" fill="${St}"/>`),
+    `<g class="device web">${i}</g>`
+  );
+}
+function pc(e, t) {
+  const s = gn(e, t),
+    a = 56,
+    n = 86,
+    o = 5,
+    r = wn(s, 0, 0, 0, a, n, o);
+  let i = Sn(s, -4, 0, a + 4, n, 30);
+  i += Ce(
+    [s(-4, n), s(a, n), s(a + 10, n + 8), s(-4, n + 8)],
+    'class="iso-shadow"',
+  );
+  const l = 64,
+    c = 3,
+    h = 3,
+    d = 82,
+    y = (v) => (I, q) => s(v - (c * q) / l, h + d - I, o + q),
+    w = y(-7),
+    k = y(0),
+    g = (v, I, q, re, C) => [
+      v(I, q),
+      v(I + re, q),
+      v(I + re, q + C),
+      v(I, q + C),
+    ];
+  ((i += Ce(
+    g(w, 0, 0, d, l),
+    `fill="var(--k-fill-e2ebfc)" ${ne} stroke-width="2" stroke-linejoin="round"`,
+  )),
+    (i += Ce(
+      [w(0, 0), k(0, 0), k(0, l), w(0, l)],
+      `fill="var(--k-fill-cddcf8)" ${ne} stroke-width="1.6" stroke-linejoin="round"`,
+    )),
+    (i += Ce(
+      [w(0, l), k(0, l), k(d, l), w(d, l)],
+      `fill="var(--k-fill-cddcf8)" ${ne} stroke-width="1.6" stroke-linejoin="round"`,
+    )),
+    (i += Ce(
+      g(k, 0, 0, d, l),
+      `fill="var(--k-fill-f4f7fe)" ${ne} stroke-width="2" stroke-linejoin="round"`,
+    )),
+    (i += Ce(
+      g(k, 4.5, 5, d - 9, l - 9.5),
+      `fill="var(--k-fill-dce6fb)" ${ne} stroke-width="1.5" stroke-linejoin="round"`,
+    )),
+    (i += Ce(
+      g(k, 4.5, l - 14, d - 9, 9.5),
+      `fill="var(--k-fill-f2f6fe)" ${ne} stroke-width="1.2" stroke-linejoin="round"`,
+    )),
+    (i += We(
+      [k(9, l - 9.3), k(24, l - 9.3)],
+      'stroke="var(--k-line-9db5e8)" stroke-width="2.2" stroke-linecap="round"',
+    )),
+    (i += '<g class="screen-content">'),
+    (i += Ce(
+      g(k, 10, 13, 22, 24),
+      'fill="var(--k-fill-a9c0ec)" stroke="none"',
+    )));
+  for (let v = 0; v < 4; v++)
+    i += We(
+      [k(38, 33 - v * 6), k(68, 33 - v * 6)],
+      'stroke="var(--k-line-a9c0ec)" stroke-width="3.2" stroke-linecap="round" pathLength="1"',
+    );
+  ((i += "</g>"),
+    (i += qs(s, 0, 0, 0, a, n, o, {
+      top: "var(--k-fill-f5f8ff)",
+      left: "var(--k-fill-dfe8fc)",
+      right: "var(--k-fill-cddcf8)",
+      sw: 2.1,
+    })));
+  const T = r.top;
+  i += Q(
+    T,
+    6,
+    9,
+    27,
+    68,
+    `fill="var(--k-fill-dce7fb)" ${ne} stroke-width="1.6"`,
+  );
+  for (let v = 6 + 5.4; v < 33; v += 5.4)
+    i += We([T(v, 9), T(v, 77)], `stroke="${St}" stroke-width="0.9"`);
+  for (let v = 9 + 4.85; v < 77; v += 4.85)
+    i += We([T(6, v), T(33, v)], `stroke="${St}" stroke-width="0.9"`);
+  return (
+    (i += Q(T, 38, 28, 13, 30, `fill="var(--k-fill-c3d4f5)" ${qt}`)),
+    `<g class="device laptop">${i}</g>`
+  );
+}
+function hc(e, t) {
+  const s = [
+      [-60, 10, 21],
+      [-32, -16, 20],
+      [-6, -36, 17],
+      [22, -36, 26],
+      [46, -16, 20],
+      [58, 3, 22],
+      [40, 22, 24],
+      [-24, 24, 24],
+      [8, 2, 32],
+      [-20, 6, 26],
+    ],
+    a = (i, l = 0, c = 0) =>
+      s
+        .map(
+          ([h, d, y]) =>
+            `<circle cx="${e + h + l}" cy="${t + d + c}" r="${y}" ${i}/>`,
+        )
+        .join(""),
+    n = e + 20,
+    o = t,
+    r = 19.5;
+  return `<g class="device cloud">
+    <clipPath id="cloud-clip">${a("")}</clipPath>
+    <ellipse cx="${e + 12}" cy="${t + 44}" rx="80" ry="10" class="iso-shadow round"/>
+    ${a(`fill="var(--k-fill-fdfdff)" ${ne} stroke-width="4.6"`)}
+    <g clip-path="url(#cloud-clip)">
+      ${a('fill="var(--k-fill-e3eaf8)"')}
+      ${a('fill="var(--k-fill-fdfdff)"', 3, -4)}
+    </g>
+    <g fill="none" ${ne} stroke-width="2.4" stroke-linecap="round">
+      <circle cx="${n}" cy="${o}" r="${r}" fill="var(--k-fill-fdfdff)"/>
+      <ellipse cx="${n}" cy="${o}" rx="8.5" ry="${r}"/>
+      <line x1="${n}" y1="${o - r}" x2="${n}" y2="${o + r}"/>
+      <path d="M${n - r},${o} H${n + r}"/>
+      <path d="M${n - 16},${o - 10} Q${n},${o - 5} ${n + 16},${o - 10} M${n - 16},${o + 10} Q${n},${o + 15} ${n + 16},${o + 10}"/>
+    </g>
+  </g>`;
+}
+const uc = [45, 66, 810, 490],
+  fo = [450, 311],
+  mo = 'x="-500" y="-500" width="1900" height="1500"',
+  yt = {
+    idle: "var(--k-line-bccae6)",
+    navy: "#0b3aa8",
+    blue: "#1f6fe8",
+    green: "#12a56b",
+    amber: "#f2ac0a",
+    violet: "#7656e0",
+    teal: "#0e95a3",
+    slate: "#5d6f95",
+  };
+function Xs(e, t, [s, a], [n, o], r = 5.5) {
+  const i = Math.hypot(n - s, o - a),
+    l = (-(o - a) / i) * r,
+    c = ((n - s) / i) * r;
+  return {
+    [`${e}>${t}`]: [s + l, a + c, n + l, o + c],
+    [`${t}>${e}`]: [n - l, o - c, s - l, a - c],
+  };
+}
+const As = {
+    "client>router": [262, 430, 371, 383],
+    "router>client": [376, 355, 268, 403],
+    "router>internet": [508.4, 357.1, 668.4, 434.8],
+    "internet>router": [663.6, 444.6, 503.6, 366.9],
+    "internet>dns": [690, 418, 690, 231],
+    "dns>internet": [712, 229, 712, 404],
+    "internet>web": [776, 418, 776, 254],
+    "web>internet": [797, 264, 797, 438],
+    ...Xs("internet", "root", [799, 432], [928, 316]),
+    ...Xs("internet", "tld", [812, 457], [968, 440]),
+    ...Xs("internet", "auth", [796, 492], [925, 580]),
+    ...Xs("internet", "mx", [812, 455], [956, 395]),
+  },
+  fc = {
+    "client>dns": ["client>router", "router>internet", "internet>dns"],
+    "dns>client": ["dns>internet", "internet>router", "router>client"],
+    "client>web": ["client>router", "router>internet", "internet>web"],
+    "web>client": ["web>internet", "internet>router", "router>client"],
+    "dns>root": ["dns>internet", "internet>root"],
+    "root>dns": ["root>internet", "internet>dns"],
+    "dns>tld": ["dns>internet", "internet>tld"],
+    "tld>dns": ["tld>internet", "internet>dns"],
+    "dns>auth": ["dns>internet", "internet>auth"],
+    "auth>dns": ["auth>internet", "internet>dns"],
+    "client>router": ["client>router"],
+    "router>client": ["router>client"],
+    "client>internet": ["client>router", "router>internet"],
+    "internet>client": ["internet>router", "router>client"],
+    "router>web": ["router>internet", "internet>web"],
+    "web>router": ["web>internet", "internet>router"],
+    "web>dns": ["web>internet", "internet>dns"],
+    "dns>web": ["dns>internet", "internet>web"],
+    "web>mx": ["web>internet", "internet>mx"],
+    "mx>web": ["mx>internet", "internet>web"],
+  },
+  Ge = {
+    internet: ["Internet", ""],
+    client: ["Client", "192.168.1.10"],
+    router: ["Router", "192.168.1.1"],
+    dns: ["DNS Resolver", "8.8.8.8"],
+    web: ["Web Server", "203.0.113.10"],
+    root: ["Root Server", "198.41.0.4"],
+    tld: [".com TLD Server", "192.5.6.30"],
+    auth: ["Authoritative Server", "198.51.100.53"],
+    mx: ["Mail Server", "198.51.100.25"],
+  },
+  mc = {
+    client: "Client",
+    router: "Router",
+    dns: "DNS Resolver",
+    internet: "Internet",
+    web: "Web Server",
+    root: "Root Server",
+    tld: ".com Server",
+    auth: "Authoritative",
+    mx: "Mail Server",
+  },
+  yo = [728, 460],
+  yc = [701, 185],
+  gc = [812, 203],
+  wc = [960, 300],
+  Sc = [1005, 430],
+  bc = [960, 575],
+  vc = [1010, 380],
+  Fn = {
+    client: [214, 446],
+    dns: [701, 180],
+    router: [440, 360],
+    internet: [732, 458],
+    web: [812, 206],
+    root: [960, 296],
+    tld: [1005, 426],
+    auth: [960, 571],
+    mx: [1010, 378],
+  },
+  Tc = {
+    client: { x: 205, y: 372, side: "top" },
+    router: { x: 440, y: 290, side: "top" },
+    web: { x: 758, y: 200, side: "left" },
+    dns: { x: 662, y: 212, side: "left" },
+    internet: { x: 732, y: 396, side: "top" },
+    mx: { x: 955, y: 345, side: "left" },
+  },
+  go = {
+    client: ["client"],
+    local: ["client", "router"],
+    lookup: ["client", "router", "internet", "dns"],
+    root: ["client", "router", "internet", "dns", "root"],
+    tld: ["client", "router", "internet", "dns", "root", "tld"],
+    path: ["client", "router", "internet", "web"],
+    mailhost: ["client", "router", "internet", "dns", "web"],
+    servers: ["internet", "dns", "web", "mx"],
+    full: [
+      "client",
+      "router",
+      "dns",
+      "internet",
+      "web",
+      "root",
+      "tld",
+      "auth",
+      "mx",
+    ],
+  },
+  ut = (e, t, s, a, n = "start", o = "left-bottom") =>
+    `<g class="node-label" data-origin="${o}"><text class="node-name" x="${e}" y="${t}" text-anchor="${n}">${b(s)}</text>` +
+    (a
+      ? `<text class="node-ip" x="${e}" y="${t + 18}" text-anchor="${n}">${b(a)}</text>`
+      : "") +
+    "</g>";
+function Ec() {
+  const e = (
+    t,
+  ) => `<marker id="head-${t}" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6.2" markerHeight="6.2" orient="auto-start-reverse">
+       <path d="M0,0.6 L10,5 L0,9.4 Z" fill="${yt[t]}"/></marker>`;
+  return `<defs>
+    ${Object.keys(yt).map(e).join("")}
+    <pattern id="iso-grid" width="62.354" height="36" patternUnits="userSpaceOnUse" x="9" y="4">
+      <path d="M0,0 L62.354,36 M62.354,0 L0,36" stroke="var(--k-line-e4eaf5)" stroke-width="1"/>
+    </pattern>
+    <!-- the grid fades into the panel towards the edges -->
+    <radialGradient id="grid-vignette" gradientUnits="userSpaceOnUse" cx="${fo[0]}" cy="${fo[1]}" r="560">
+      <stop offset="0" stop-color="var(--k-fill-fefeff)" stop-opacity="0"/>
+      <stop offset="0.6" stop-color="var(--k-fill-fefeff)" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="var(--k-fill-fefeff)" stop-opacity="1"/>
+    </radialGradient>
+    <!-- soft ground shadows, darkest against the device -->
+    <linearGradient id="shadow-fade" x1="0" y1="0.25" x2="1" y2="0.75">
+      <stop offset="0" stop-color="var(--k-shadow-8d9ab3)" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="var(--k-shadow-8d9ab3)" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="shadow-round">
+      <stop offset="0" stop-color="var(--k-shadow-8d9ab3)" stop-opacity="0.26"/>
+      <stop offset="1" stop-color="var(--k-shadow-8d9ab3)" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="face-top" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="var(--k-fill-f8fbff)"/><stop offset="1" stop-color="var(--k-fill-e6eefc)"/>
+    </linearGradient>
+    <linearGradient id="face-left" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="var(--k-fill-eff5ff)"/><stop offset="1" stop-color="var(--k-fill-dae5fb)"/>
+    </linearGradient>
+    <linearGradient id="face-right" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="var(--k-fill-e0eafc)"/><stop offset="1" stop-color="var(--k-fill-c7d7f6)"/>
+    </linearGradient>
+  </defs>`;
+}
+const kc = `
+  <g class="url-holder" transform="translate(60 334)"><g class="url-bar">
+    <path d="M128 26 L140 58" class="url-leader"/>
+    <rect class="url-box" width="168" height="26" rx="3"/>
+    <g class="url-globe" transform="translate(9 6)">
+      <circle cx="7" cy="7" r="6"/><ellipse cx="7" cy="7" rx="2.6" ry="6"/><path d="M1.4 5h11.2M1.4 9h11.2"/>
+    </g>
+    <g class="url-lock" transform="translate(10 5)">
+      <path d="M3 7 V4.6 a3.5 3.5 0 0 1 7 0 V7"/><rect x="1" y="7" width="11" height="8" rx="1.6"/>
+    </g>
+    <text class="url-text" x="29" y="17.5"></text>
+    <rect class="url-caret" x="29" y="6.5" width="1.6" height="13"/>
+    <path class="url-check" d="M0 13.5 l3.5 3.5 l6.5 -7" pathLength="1"/>
+  </g></g>`,
+  ft = (e, t) => `<g class="node" data-node="${e}">${t}</g>`;
+function Ac() {
+  const e = Object.entries(As)
+    .map(([t, s]) => {
+      const [a, n, o, r] = s.map((i) => i.toFixed(1));
+      return `<path class="lane" data-lane="${t}" d="M${a},${n} L${o},${r}" marker-end="url(#head-idle)"/>`;
+    })
+    .join("");
+  return `
+  <svg class="network is-booting" viewBox="${uc.join(" ")}" preserveAspectRatio="xMidYMid meet" data-t-label="Network diagram" aria-label="${b("Network diagram")}">
+    ${Ec()}
+    <rect ${mo} fill="url(#iso-grid)"/>
+    <rect ${mo} fill="url(#grid-vignette)"/>
+    <g class="lanes">${e}</g>
+    <g class="pulse-layer"></g>
+    ${ft("internet", hc(...yo) + ut(yo[0] - 2, 524, ...Ge.internet, "start", "center-top"))}
+    ${ft("client", pc(240, 446) + ut(73, 494, ...Ge.client, "start", "right-top") + kc)}
+    ${ft("router", dc(440, 339) + ut(407, 426, ...Ge.router, "start", "left-top"))}
+    ${ft("dns", Vs(...yc) + ut(654, 160, ...Ge.dns, "end", "right-bottom"))}
+    ${ft("web", uo(...gc) + ut(773, 106, ...Ge.web))}
+    ${ft("root", Vs(...wc) + ut(925, 228, ...Ge.root))}
+    ${ft("tld", Vs(...Sc) + ut(970, 360, ...Ge.tld))}
+    ${ft("auth", Vs(...bc) + ut(925, 505, ...Ge.auth))}
+    ${ft("mx", uo(...vc) + ut(968, 286, ...Ge.mx))}
+    <g class="packet-layer"></g>
+    <g class="note-layer"></g>
+  </svg>`;
+}
+const Mt = { draw: 620, quick: 320, stagger: 160, note: 700 },
+  xc = [
+    "client",
+    "router",
+    "internet",
+    "dns",
+    "web",
+    "mx",
+    "root",
+    "tld",
+    "auth",
+  ],
+  $c = 3e3,
+  Lc = 0.25,
+  wo = 58,
+  Pc = 18,
+  Cc = 9,
+  Rc = 30,
+  So = 30,
+  Ic = 22,
+  bo = 30,
+  Oc = 30,
+  Nc = 40,
+  Kn = (e) => Math.round(e * 1e6) / 1e6;
+function Er(e, t, s) {
+  const a = e.latency?.[`${t}-${s}`] ?? e.latency?.[`${s}-${t}`];
+  if (a === void 0) throw new Error(`${e.id}: no delay between ${t} and ${s}`);
+  return a;
+}
+function qc(e) {
+  return e >= 3600
+    ? `${+(e / 3600).toFixed(1)} h later`
+    : e >= 60
+      ? `${+(e / 60).toFixed(1)} min later`
+      : `${e < 10 ? e.toFixed(2) : e.toFixed(1)} s later`;
+}
+function Mc(e) {
+  const t = [];
+  let s = 0,
+    a = 0;
+  e.steps.forEach((g, T) =>
+    g.events.forEach((v) => {
+      (v.type === "packet" &&
+        t.push({ type: "packet", p: v, step: T, index: s++ }),
+        v.type === "stream" &&
+          v.packets.forEach((I) =>
+            t.push({ type: "packet", p: I, step: T, index: s++ }),
+          ),
+        v.type === "note" &&
+          t.push({ type: "note", e: v, step: T, index: a++ }));
+    }),
+  );
+  const n = new Set(
+      t.flatMap((g) => (g.type === "packet" ? [g.p.from, g.p.to] : [])),
+    ),
+    o = (e.lifelines ?? xc).filter((g) => n.has(g)),
+    r = t
+      .filter((g) => g.type === "packet")
+      .map((g, T) => {
+        const { p: v } = g,
+          I = Kn(parseFloat(v.row.time)),
+          q = Er(e, v.from, v.to);
+        return { ...g, k: T, sent: I, arrived: Kn(I + q) };
+      }),
+    i = t
+      .map((g, T) => ({ it: g, i: T }))
+      .filter(({ it: g }) => g.type === "note")
+      .map(({ it: g, i: T }) => {
+        const v = t.slice(0, T).findLast((R) => R.type === "packet"),
+          I = t.slice(T + 1).find((R) => R.type === "packet"),
+          q = v ? r.find((R) => R.index === v.index).arrived : 0,
+          re =
+            I && I.step === g.step
+              ? r.find((R) => R.index === I.index).sent
+              : -1 / 0,
+          C = o.includes(g.e.at) ? g.e.at : null,
+          Z = v ? [v.p.from, v.p.to] : null;
+        return { ...g, order: T, t: Math.max(q, re), lane: C, between: Z };
+      }),
+    l = [
+      ...r.flatMap((g) => [
+        {
+          t: g.sent,
+          kind: 1,
+          order: t.indexOf(
+            t.find((T) => T.type === "packet" && T.index === g.index),
+          ),
+          pk: g,
+          end: "sent",
+        },
+        { t: g.arrived, kind: 0, order: g.k, pk: g, end: "arrived" },
+      ]),
+      ...i.map((g) => ({ t: g.t, kind: 0.5, order: g.order, n: g })),
+    ].sort((g, T) => g.t - T.t || g.kind - T.kind || g.order - T.order),
+    c = [],
+    h = [];
+  let d = Oc,
+    y = null,
+    w = -1 / 0,
+    k = -1 / 0;
+  for (const g of l) {
+    if (y) {
+      const v = Kn(g.t - y.t);
+      v > Lc
+        ? (h.push({ y: d + wo / 2, seconds: v }), (d += wo))
+        : v > 0
+          ? (d += Math.max(Cc, v * $c))
+          : g.kind === y.kind && g.kind === 0 && (d += Pc);
+    }
+    g.kind === 1 && (d = Math.max(d, w + Rc, k + Ic));
+    const T = g.pk && g.end === "sent" ? g.pk.step : g.n ? g.n.step : null;
+    (T !== null &&
+      !c.some((v) => v.step === T) &&
+      ((d += bo / 2), c.push({ step: T, y: d }), (d += bo / 2)),
+      g.n
+        ? ((d += So / 2), (g.n.y = d), (k = d + 10), (d += So / 2))
+        : (g.pk[g.end === "sent" ? "ySent" : "yArrived"] = d),
+      g.kind === 1 && (w = d),
+      (y = g));
+  }
+  return {
+    lifelines: o,
+    packets: r,
+    notes: i,
+    steps: c,
+    breaks: h,
+    height: d + Nc,
+  };
+}
+let hn = 1,
+  ps = !1;
+const Ss = new Set();
+function Qs(e) {
+  ((e.playbackRate = hn),
+    ps && e.playState === "running" && e.pause(),
+    !ps && e.playState === "paused" && e.play());
+}
+const Vt = {
+  get speed() {
+    return hn;
+  },
+  get paused() {
+    return ps;
+  },
+  setSpeed(e) {
+    ((hn = e), Ss.forEach(Qs));
+  },
+  pause() {
+    ((ps = !0), Ss.forEach(Qs));
+  },
+  resume() {
+    ((ps = !1), Ss.forEach(Qs));
+  },
+  track(e) {
+    (Ss.add(e), Qs(e));
+    const t = () => Ss.delete(e);
+    return (
+      e.addEventListener("finish", t),
+      e.addEventListener("cancel", t),
+      e
+    );
+  },
+};
+function xe(e, t, s = () => {}) {
+  return new Promise((a) => {
+    let n = null,
+      o = 0;
+    const r = (i) => {
+      if (t.cancelled) return a();
+      (n !== null && !ps && (o += (i - n) * hn), (n = i));
+      const l = typeof e == "function" ? e() : e,
+        c = l > 0 ? Math.max(0, Math.min(1, o / l)) : 1;
+      (s(c), c < 1 ? requestAnimationFrame(r) : a());
+    };
+    requestAnimationFrame(r);
+  });
+}
+const se = (e, t) => xe(e, t),
+  Dc = "http://www.w3.org/2000/svg",
+  an = 78,
+  vo = 30,
+  Hc = 124,
+  _c = "M-3.2 -1 V-2.6 a3.2 3.2 0 0 1 6.4 0 V-1 M-4.4 -1 h8.8 v6.4 h-8.8 z";
+function Fc() {
+  return `
+  <div class="sequence" data-t-label="Sequence diagram" aria-label="${b("Sequence diagram")}">
+    <div class="seq-head"></div>
+    <div class="seq-scroll"><svg class="seq-svg" xmlns="${Dc}"></svg></div>
+  </div>`;
+}
+const Kc = (e, t) => b((e.labels?.[t] ?? Ge[t])[0]);
+function Uc(e, t, s) {
+  const a = b((e.labels?.[t] ?? Ge[t])[1]);
+  return a || (s.packets.find((n) => n.p.from === t)?.p.row.src ?? "");
+}
+function Bc(e, t, s) {
+  const { p: a } = e,
+    n = t[a.from],
+    o = a.lost ? (t[a.from] + t[a.to]) / 2 : t[a.to],
+    [r, i] = [e.ySent, a.lost ? (e.ySent + e.yArrived) / 2 : e.yArrived],
+    l = Math.hypot(o - n, i - r),
+    [c, h] = [(o - n) / l, (i - r) / l],
+    d = a.lost ? 0 : 9,
+    [y, w] = [o - c * d, i - h * d];
+  let k = (Math.atan2(i - r, o - n) * 180) / Math.PI;
+  (k > 90 && (k -= 180), k < -90 && (k += 180));
+  const g = a.row,
+    T = `${ds(`#${e.index + 1} · ${g.time} · ${g.src} → ${g.dst} · ${g.proto}`)} · ${b(g.info)} · ${ds(g.len)}`,
+    v = a.lost
+      ? `<path class="seq-cross" d="M${o - 6},${i - 6} L${o + 6},${i + 6} M${o + 6},${i - 6} L${o - 6},${i + 6}"/>`
+      : `<path class="seq-tip" d="M${o},${i} L${y - h * 4.5},${w + c * 4.5} L${y + h * 4.5},${w - c * 4.5} Z"/>`;
+  return `
+    <g class="seq-arrow c-${a.color}${a.lost ? " is-lost" : ""}" data-packet="${e.index}" data-len="${l.toFixed(1)}" data-geo="${[n, r, o, i, k.toFixed(2)].join(" ")}">
+      <title>${B(T)}</title>
+      <text class="seq-time" x="${an - 14}" y="${r}">${B(g.time)}</text>
+      <circle class="seq-dot" cx="${n}" cy="${r}" r="2.6"/>
+      <line class="seq-line" x1="${n}" y1="${r}" x2="${y}" y2="${w}"/>
+      ${v}
+      <g class="seq-label">
+        <rect class="seq-label-bg" y="-17" height="15" rx="2"/>
+        ${a.locked ? `<path class="seq-lock" d="${_c}"/>` : ""}
+        <text class="seq-label-text" y="-6" text-anchor="middle">${B(b(a.label))}</text>
+      </g>
+    </g>`;
+}
+function Gc(e, t, s) {
+  const a = e.lane,
+    n = a && s.indexOf(a) === s.length - 1 && s.length > 1,
+    o = a
+      ? t[a]
+      : e.between
+        ? (t[e.between[0]] + t[e.between[1]]) / 2
+        : t[s[0]],
+    r = a ? (n ? "left" : "right") : "center";
+  return `
+    <g class="seq-note tone-${e.e.tone ?? "navy"}" data-note="${e.index}" data-side="${r}" transform="translate(${o} ${e.y})">
+      ${a ? '<circle class="seq-note-dot" r="3.5"/>' : ""}
+      <rect class="seq-note-bg" y="-10" height="20" rx="2"/>
+      <text class="seq-note-text" y="0.5">${B(b(e.e.text))}</text>
+    </g>`;
+}
+function Yc(e, t) {
+  const s = (a) => {
+    let n = `M0 ${a}`;
+    for (let o = 0; o < t; o += 12) n += " q3 -3 6 0 q3 3 6 0";
+    return n;
+  };
+  return `
+    <g class="seq-break" transform="translate(0 ${e.y})">
+      <rect class="seq-break-band" x="0" y="-15" width="${t}" height="30"/>
+      <path class="seq-wave" d="${s(-6)} ${s(6)}"/>
+      <g transform="translate(${t / 2} 0)">
+        <rect class="seq-break-bg" y="-10" height="20" rx="10"/>
+        <text class="seq-break-text" y="0.5" text-anchor="middle">${B(b(qc(e.seconds)))}</text>
+      </g>
+    </g>`;
+}
+function Wc(e, t) {
+  for (const s of [e, t])
+    for (let a = 0; a < s.length; a++) {
+      const [n, o] = [s[a], s[(a + 1) % s.length]],
+        [r, i] = [o[1] - n[1], n[0] - o[0]],
+        l = (d) => d.map(([y, w]) => y * r + w * i),
+        [c, h] = [l(e), l(t)];
+      if (Math.max(...c) <= Math.min(...h) || Math.max(...h) <= Math.min(...c))
+        return !1;
+    }
+  return !0;
+}
+const To = (e, t, s, a) => [
+  [e, t],
+  [s, t],
+  [s, a],
+  [e, a],
+];
+function jc(e) {
+  const t = (i) => i.querySelector("text").getComputedTextLength(),
+    s = [...e.querySelectorAll(".seq-note")].map((i) => ({ g: i, w: t(i) })),
+    a = [...e.querySelectorAll(".seq-arrow")].map((i) => ({
+      arrow: i,
+      g: i.querySelector(".seq-label"),
+      w: t(i.querySelector(".seq-label")),
+    })),
+    n = [...e.querySelectorAll(".seq-break")].map((i) => ({ g: i, w: t(i) })),
+    o = [...e.querySelectorAll(".seq-step")].map((i) => ({ g: i, w: t(i) })),
+    r = [...e.querySelectorAll(".seq-cross")].map((i) => {
+      const [l, c] = i
+        .getAttribute("d")
+        .match(/[-\d.]+/g)
+        .map(Number);
+      return To(l - 3, c - 3, l + 15, c + 15);
+    });
+  (o.forEach(({ g: i, w: l }) =>
+    i.querySelector("line").setAttribute("x1", 12 + l + 10),
+  ),
+    s.forEach(({ g: i, w: l }) => {
+      const c = i.querySelector("text"),
+        h = i.querySelector("rect"),
+        d = i.dataset.side,
+        y = d === "right" ? 10 : d === "left" ? -10 - l - 16 : -l / 2 - 8;
+      (h.setAttribute("x", y),
+        h.setAttribute("width", l + 16),
+        c.setAttribute("x", y + 8));
+      const [w, k] = i
+        .getAttribute("transform")
+        .match(/[-\d.]+/g)
+        .map(Number);
+      r.push(To(w + y, k - 10, w + y + l + 16, k + 10));
+    }),
+    n.forEach(({ g: i, w: l }) => {
+      const c = i.querySelector(".seq-break-bg");
+      (c.setAttribute("x", -l / 2 - 10), c.setAttribute("width", l + 20));
+    }),
+    a.sort((i, l) => l.w - i.w),
+    a.forEach(({ arrow: i, g: l, w: c }) => {
+      const h = l.querySelector("text"),
+        d = l.querySelector(".seq-lock"),
+        y = d ? 14 : 0;
+      (h.setAttribute("x", y / 2),
+        d && d.setAttribute("transform", `translate(${-c / 2 - 4} -10)`));
+      const w = l.querySelector("rect");
+      (w.setAttribute("x", -c / 2 - 5 - y / 2),
+        w.setAttribute("width", c + 10 + y));
+      const [k, g, T, v, I] = i.dataset.geo.split(" ").map(Number),
+        q = c / 2 + 6 + y / 2,
+        [re, C] = [
+          Math.cos((I * Math.PI) / 180),
+          Math.sin((I * Math.PI) / 180),
+        ],
+        Z = [
+          [-q - 2, -21],
+          [q + 2, -21],
+          [q + 2, 3],
+          [-q - 2, 3],
+        ].map(([A, _]) => [A * re - _ * C, A * C + _ * re]),
+        R = (A) => {
+          const [_, J] = [k + (T - k) * A, g + (v - g) * A];
+          return { cx: _, cy: J, box: Z.map(([Re, V]) => [_ + Re, J + V]) };
+        },
+        x = Math.hypot(T - k, v - g),
+        H = Math.min(0.45, (q + 8) / x),
+        we = [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8, 0.12, 0.88]
+          .filter((A) => A >= H && A <= 1 - H)
+          .map(R),
+        ce = (A) => r.filter((_) => Wc(A.box, _)).length,
+        P =
+          we.find((A) => !ce(A)) ??
+          [...we, R(0.5)].sort((A, _) => ce(A) - ce(_))[0];
+      (r.push(P.box),
+        l.setAttribute(
+          "transform",
+          `translate(${P.cx.toFixed(1)} ${P.cy.toFixed(1)}) rotate(${I})`,
+        ));
+    }));
+}
+function kr(e, t) {
+  const s = e.querySelector(".seq-scroll"),
+    a = e.querySelector(".seq-svg"),
+    n = Mc(t),
+    o = Math.max(s.clientWidth, an + vo + n.lifelines.length * Hc),
+    r = (o - an - vo) / n.lifelines.length,
+    i = Object.fromEntries(
+      n.lifelines.map((d, y) => [d, Math.round(an + r * (y + 0.5))]),
+    ),
+    l = e.querySelector(".seq-head");
+  ((l.innerHTML =
+    `<div class="seq-head-track" style="width:${o}px">` +
+    n.lifelines
+      .map(
+        (d) =>
+          `<span class="seq-who" style="left:${i[d]}px; max-width:${Math.floor(r - 10)}px"><b>${B(Kc(t, d))}</b><i>${B(Uc(t, d, n))}</i></span>`,
+      )
+      .join("") +
+    "</div>"),
+    (l.style.height = `${Math.max(46, ...[...l.querySelectorAll(".seq-who")].map((d) => d.offsetHeight + 6))}px`));
+  const c = n.lifelines
+      .map(
+        (d) =>
+          `<line class="seq-life" x1="${i[d]}" y1="0" x2="${i[d]}" y2="${n.height}"/>`,
+      )
+      .join(""),
+    h = n.steps
+      .map(
+        (d) => `
+    <g class="seq-step" data-step="${d.step}" transform="translate(0 ${d.y})">
+      <line class="seq-step-line" x1="10" y1="0" x2="${o - 10}" y2="0"/>
+      <text class="seq-step-text" x="12" y="0.5"><tspan class="seq-step-num">${b("STEP {n}", { n: d.step + 1 })}</tspan> · ${B(At(b(t.steps[d.step].title)))}</text>
+    </g>`,
+      )
+      .join("");
+  (a.setAttribute("viewBox", `0 0 ${o} ${n.height}`),
+    a.setAttribute("width", o),
+    a.setAttribute("height", n.height),
+    (a.innerHTML =
+      c +
+      n.breaks.map((d) => Yc(d, o)).join("") +
+      h +
+      n.notes.map((d) => Gc(d, i, n.lifelines)).join("") +
+      [
+        ...n.packets.filter((d) => !d.p.lost),
+        ...n.packets.filter((d) => d.p.lost),
+      ]
+        .map((d) => Bc(d, i))
+        .join("")),
+    jc(a),
+    (e._layout = n),
+    (e._lesson = t),
+    (e._width = s.clientWidth),
+    (e.dataset.lesson = t.id),
+    (s.scrollTop = 0),
+    (s.scrollLeft = 0),
+    Ar(e));
+}
+const Ar = (e) => {
+  const t = e.querySelector(".seq-head-track");
+  t &&
+    (t.style.transform = `translateX(${-e.querySelector(".seq-scroll").scrollLeft}px)`);
+};
+function xr(e) {
+  if (!e._lesson || e.dataset.lesson !== e._want) return;
+  const t = e.querySelector(".seq-scroll"),
+    s = t.scrollTop;
+  (kr(e, e._lesson),
+    e._state && Ea(e, e._state, e._lesson),
+    e
+      .querySelector(".seq-svg")
+      .getAnimations({ subtree: !0 })
+      .forEach((a) => a.finish()),
+    (t.scrollTop = s));
+}
+function Vc(e) {
+  const t = e.querySelector(".seq-scroll");
+  (t.addEventListener("scroll", () => Ar(e), { passive: !0 }),
+    new ResizeObserver(
+      () => Math.abs(t.clientWidth - e._width) >= 1 && xr(e),
+    ).observe(t));
+}
+const $r = (e) => Number(getComputedStyle(e).opacity);
+function Un(e, t, s) {
+  const a = $r(e);
+  if (
+    (e.getAnimations({ subtree: !0 }).forEach((l) => l.cancel()),
+    e.classList.add("is-shown"),
+    ge() ||
+      ((t === "fade" || a > 0) &&
+        (e.animate([{ opacity: a }, { opacity: 1 }], {
+          duration: 260 * (1 - a),
+          delay: a > 0 ? 0 : s,
+          easing: "ease-out",
+          fill: "backwards",
+        }),
+        t === "fade" || a > 0.5)))
+  )
+    return;
+  const n = e.querySelector(".seq-line"),
+    o = Number(e.dataset.len),
+    r = t === "quick" ? Mt.quick : Mt.draw,
+    i = (l, c, h) =>
+      Vt.track(l.animate(c, { delay: s, fill: "backwards", ...h }));
+  (s && i(e, [{ opacity: 0 }, { opacity: 1 }], { duration: 1 }),
+    e.classList.contains("is-lost")
+      ? i(n, [{ opacity: 0 }, { opacity: 1 }], {
+          duration: r,
+          easing: "ease-out",
+        })
+      : i(
+          n,
+          [
+            { strokeDasharray: `${o} ${o}`, strokeDashoffset: o },
+            { strokeDasharray: `${o} ${o}`, strokeDashoffset: 0 },
+          ],
+          { duration: r, easing: Dt },
+        ),
+    i(
+      e.querySelector(".seq-tip, .seq-cross"),
+      [{ opacity: 0 }, { opacity: 1 }],
+      { duration: 160, delay: s + r * 0.7, easing: "ease-out" },
+    ),
+    i(e.querySelector(".seq-label"), [{ opacity: 0 }, { opacity: 1 }], {
+      duration: 240,
+      delay: s + r * 0.3,
+      easing: "ease-out",
+    }));
+}
+function Eo(e) {
+  const t = $r(e);
+  (e.getAnimations({ subtree: !0 }).forEach((s) => s.cancel()),
+    e.classList.remove("is-shown"),
+    !ge() &&
+      t > 0 &&
+      e.animate([{ opacity: t }, { opacity: 0 }], {
+        duration: 180 * t,
+        easing: t < 1 ? "linear" : "ease-in",
+      }));
+}
+function Ea(e, t, s) {
+  const a = e.querySelector(".seq-svg"),
+    n = e._layout,
+    o = [];
+  let r = 0;
+  a.querySelectorAll(".seq-arrow").forEach((w) => {
+    const k = Number(w.dataset.packet),
+      g = t.packets[k],
+      T = !t.started || g !== "future",
+      v = t.started && g === "current";
+    (T &&
+      !w.classList.contains("is-shown") &&
+      o.push({ g: w, current: v, y: n.packets[k].yArrived }),
+      !T && w.classList.contains("is-shown") && Eo(w),
+      w.classList.toggle("is-current", v));
+  });
+  const i = o.length && o.every((w) => w.current);
+  (o.forEach((w, k) => {
+    const g = n.packets.find((T) => T.index === Number(w.g.dataset.packet))?.p
+      .quick;
+    i
+      ? Un(w.g, g ? "quick" : "draw", k * Mt.stagger)
+      : Un(w.g, "fade", Math.min(r++ * 14, 420));
+  }),
+    a.querySelectorAll(".seq-note").forEach((w) => {
+      const k = !t.started || t.notes[Number(w.dataset.note)] !== "future";
+      (k &&
+        !w.classList.contains("is-shown") &&
+        (Un(w, "fade", 0),
+        o.push({ g: w, y: n.notes[Number(w.dataset.note)].y })),
+        !k && w.classList.contains("is-shown") && Eo(w));
+    }),
+    a
+      .querySelectorAll(".seq-step")
+      .forEach((w) =>
+        w.classList.toggle(
+          "is-active",
+          t.started && !t.done && Number(w.dataset.step) === t.activeStep,
+        ),
+      ));
+  const l = e.querySelector(".seq-scroll");
+  if (!t.started) return o.length && Cs(l, 0);
+  const h = [
+      ...a.querySelectorAll(".seq-arrow.is-shown, .seq-note.is-shown"),
+    ].map((w) =>
+      w.dataset.packet !== void 0
+        ? n.packets[Number(w.dataset.packet)].yArrived
+        : n.notes[Number(w.dataset.note)].y,
+    ),
+    d = h.length ? Math.max(...h) : 0,
+    y = l.clientHeight;
+  d > l.scrollTop + y - 44
+    ? Cs(l, d - y * 0.62)
+    : d < l.scrollTop + 30 && Cs(l, d - y * 0.4);
+}
+function Xc(e, t, s) {
+  const a = [e.querySelector(".seq-scroll"), e.querySelector(".seq-head")];
+  ((e._want = t.id), (e._state = s));
+  const n = () => {
+    e._want === t.id &&
+      (a.forEach((o) => o.getAnimations().forEach((r) => r.cancel())),
+      kr(e, t),
+      Ea(e, e._state),
+      ge() ||
+        a.forEach((o) =>
+          o.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: 260,
+            easing: "ease-out",
+          }),
+        ));
+  };
+  if (!e.dataset.lesson || ge()) return n();
+  (a.forEach((o) => {
+    const r = Number(getComputedStyle(o).opacity);
+    (o.getAnimations().forEach((i) => i.cancel()),
+      o.animate([{ opacity: r }, { opacity: 0 }], {
+        duration: 160 * r,
+        easing: r < 1 ? "linear" : "ease-in",
+        fill: "forwards",
+      }));
+  }),
+    setTimeout(n, 170));
+}
+function Qc(e, t, s) {
+  if (((e._state = t), e._want !== s.id)) return Xc(e, s, t);
+  e.dataset.lesson === s.id && Ea(e, t);
+}
+const bn = (e) =>
+  e.steps
+    .flatMap((t) => t.events)
+    .flatMap((t) =>
+      t.type === "packet" ? [t] : t.type === "stream" ? t.packets : [],
+    );
+class me {
+  constructor(t, s) {
+    ((this.id = t), (this.name = s), (this.bytes = []), (this.fields = []));
+  }
+  get length() {
+    return this.bytes.length;
+  }
+  u8(t) {
+    return (this.bytes.push(t & 255), this);
+  }
+  u16(t) {
+    return (this.bytes.push((t >>> 8) & 255, t & 255), this);
+  }
+  u24(t) {
+    return (this.bytes.push((t >>> 16) & 255, (t >>> 8) & 255, t & 255), this);
+  }
+  u32(t) {
+    return (
+      this.bytes.push(
+        (t >>> 24) & 255,
+        (t >>> 16) & 255,
+        (t >>> 8) & 255,
+        t & 255,
+      ),
+      this
+    );
+  }
+  raw(t) {
+    for (const s of t) this.bytes.push(s);
+    return this;
+  }
+  ascii(t) {
+    for (const s of new TextEncoder().encode(t)) this.bytes.push(s);
+    return this;
+  }
+  unknown(t) {
+    for (let s = 0; s < t; s++) this.bytes.push(null);
+    return this;
+  }
+  field(t, s, a = () => {}, n = {}) {
+    const o = this.length;
+    return (
+      a(),
+      this.fields.push({
+        name: t,
+        value: String(s),
+        from: o,
+        to: this.length,
+        ...n,
+      }),
+      this
+    );
+  }
+}
+const bt = (e) => e.split(".").map(Number),
+  is = (e) => e.split(":").map((t) => parseInt(t, 16));
+function zc(e) {
+  const [t, s] = e.split("::"),
+    a = t ? t.split(":") : [],
+    n = s !== void 0 && s ? s.split(":") : [];
+  return [...a, ...Array(8 - a.length - n.length).fill("0"), ...n].flatMap(
+    (r) => [parseInt(r, 16) >> 8, parseInt(r, 16) & 255],
+  );
+}
+const Qe = (e, t = 4) => `0x${e.toString(16).padStart(t, "0")}`;
+function bs(e) {
+  let t = 0;
+  for (let s = 0; s < e.length; s += 2) {
+    const a = e[s],
+      n = s + 1 < e.length ? e[s + 1] : 0;
+    if (a === null || n === null) return null;
+    t += (a << 8) | n;
+  }
+  for (; t > 65535;) t = (t & 65535) + (t >>> 16);
+  return ~t & 65535;
+}
+function ko(e) {
+  const t = [],
+    s = [],
+    a = [];
+  for (const n of e) {
+    const o = t.length;
+    a.push({
+      id: n.id,
+      name: n.name,
+      from: o,
+      to: o + n.length,
+      summary: n.summary,
+    });
+    for (const r of n.fields)
+      s.push({ ...r, layer: n.id, from: r.from + o, to: r.to + o });
+    t.push(...n.bytes);
+  }
+  return { bytes: t, fields: s, layers: a };
+}
+const Zc = "192.168.1.10",
+  Lr = "192.168.1.1",
+  Ao = "198.51.100.7",
+  ka = "198.51.100.1",
+  Aa = "8.8.8.8",
+  qe = {
+    laptop: "00:00:5e:00:53:10",
+    lan: "00:00:5e:00:53:01",
+    wan: "00:00:5e:00:53:02",
+    isp: "00:00:5e:00:53:fe",
+    all: "ff:ff:ff:ff:ff:ff",
+  },
+  Gt = (e) =>
+    e.startsWith("192.168.1.") || e === "0.0.0.0" || e === "255.255.255.255",
+  xs = (e) => e === Zc || e === "0.0.0.0",
+  zs = (e) => (xs(e) || e === Aa ? 128 : e === ka ? 255 : 64),
+  Bn = (e) => (e === Lr ? 0 : e === ka ? 1 : e === Aa ? 10 : 12),
+  xo = 1460;
+function Gn(e) {
+  let t = 2166136261;
+  for (const s of e) t = Math.imul(t ^ s.charCodeAt(0), 16777619);
+  return t >>> 0;
+}
+const Jc = `\r
+`,
+  Pr = (e) => JSON.stringify(e).slice(1, -1);
+function $o(e, t, s) {
+  const a = new me(e, t);
+  return (
+    s.forEach((n, o) =>
+      a.field(o ? "" : "Text", `${Pr(n)}␍␊`, () => a.ascii(n + Jc), {
+        mono: !0,
+      }),
+    ),
+    a
+  );
+}
+function Lo(e, t) {
+  const s = ed(e, t);
+  if (!t.take) return s;
+  const [a, n] = t.take,
+    o = new me(
+      s.id,
+      `${s.name} · bytes ${a + 1}–${n} of ${s.length.toLocaleString("en-US")}`,
+    );
+  return (
+    (o.bytes = s.bytes.slice(a, n)),
+    (o.fields = s.fields
+      .filter((r) =>
+        r.from === r.to ? r.from >= a && r.from <= n : r.to > a && r.from < n,
+      )
+      .map((r) => ({
+        ...r,
+        from: Math.max(0, r.from - a),
+        to: Math.min(n, r.to) - a,
+      }))),
+    o
+  );
+}
+function ed(e, t) {
+  if (t.ascii !== void 0) {
+    const s = new me("app", t.name ?? Yn(e));
+    return (
+      s.field(
+        "Data",
+        `"${t.ascii}" (${t.ascii.length} bytes)`,
+        () => s.ascii(t.ascii),
+        { mono: !0, note: t.note },
+      ),
+      s
+    );
+  }
+  if (t.text) return $o("app", t.name ?? Yn(e), t.text);
+  if (t.http) {
+    const s = $o("app", "HTTP", t.http.lines);
+    return (
+      t.http.body &&
+        s.field(
+          "Body",
+          `${t.http.body.toLocaleString("en-US")} bytes: ${t.http.what}`,
+          () => s.unknown(t.http.body),
+          {
+            hidden: !0,
+            note: "The page itself; its contents are not part of the lesson.",
+          },
+        ),
+      s
+    );
+  }
+  if (t.opaque !== void 0) {
+    const s = new me("app", t.name ?? Yn(e));
+    return (
+      s.field(
+        "Data",
+        `${t.opaque.toLocaleString("en-US")} bytes: ${t.what}`,
+        () => s.unknown(t.opaque),
+        { hidden: !0, note: t.note },
+      ),
+      s
+    );
+  }
+  if (t.tls) return sd(t.tls);
+  if (t.ssh) return nd(t.ssh);
+  if (t.dns) return ad(t.dns);
+  if (t.dhcp) return rd(t.dhcp);
+  if (t.rtp) return id(t.rtp);
+  if (t.http2) return decodeHttp2(t.http2);
+  if (t.quic) return decodeQuic(t.quic);
+  if (t.ws) return decodeWs(t.ws);
+  if (t.mqtt) return decodeMqtt(t.mqtt);
+  if (t.sse) return decodeSse(t.sse);
+  if (t.chunked) return decodeChunked(t.chunked);
+  if (t.grpc) return decodeGrpc(t.grpc);
+  if (t.snmp) return decodeSnmp(t.snmp);
+  if (t.netflow) return decodeNetflow(t.netflow);
+  if (t.syslog) return decodeSyslog(t.syslog);
+  throw new Error(`unknown payload for ${e.info}`);
+}
+const Yn = (e) => e.proto.replace(" (TLS)", "").replace("-DATA", " data"),
+  td = {
+    handshake: [22, "Handshake"],
+    ccs: [20, "Change Cipher Spec"],
+    appdata: [23, "Application Data"],
+    alert: [21, "Alert"],
+  };
+function sd(e, t) {
+  const s = new me(
+    "tls",
+    `TLS 1.3 · ${e.length} record${e.length > 1 ? "s" : ""}`,
+  );
+  for (const a of e) {
+    const [n, o] = td[a.type],
+      r = a.length;
+    if (
+      (s.field(
+        "Record",
+        `${o}, ${r.toLocaleString("en-US")} byte${r === 1 ? "" : "s"}`,
+        () => {},
+        { heading: !0 },
+      ),
+      s.field("Content type", `${n} (${o})`, () => s.u8(n), {
+        depth: 1,
+        note: a.inner
+          ? "Every encrypted record says Application Data on the outside; the real type is inside."
+          : void 0,
+      }),
+      s.field(
+        "Version",
+        a.legacy ? "0x0301 (TLS 1.0)" : "0x0303 (TLS 1.2)",
+        () => s.u16(a.legacy ? 769 : 771),
+        {
+          depth: 1,
+          note: a.legacy
+            ? "A Client Hello’s record says TLS 1.0 so old middleboxes let it through; the real versions are offered inside."
+            : "TLS 1.3 records say 1.2 on the outside, for compatibility.",
+        },
+      ),
+      s.field("Length", r.toLocaleString("en-US"), () => s.u16(r), {
+        depth: 1,
+      }),
+      a.type === "ccs")
+    )
+      s.field("Change cipher spec", "1", () => s.u8(1), {
+        depth: 1,
+        note: "Has no job in TLS 1.3; sent so middleboxes see a familiar handshake.",
+      });
+    else if (a.hello) {
+      const i = a.hello;
+      (s.field("Handshake type", `${i.type} (${i.name})`, () => s.u8(i.type), {
+        depth: 1,
+      }),
+        s.field("Length", (r - 4).toLocaleString("en-US"), () => s.u24(r - 4), {
+          depth: 1,
+        }),
+        s.field(
+          "Contents",
+          `${(r - 4).toLocaleString("en-US")} bytes`,
+          () => s.unknown(r - 4),
+          { depth: 1, hidden: !0, note: i.note },
+        ));
+      for (const [l, c] of i.fields) s.field(l, c, () => {}, { depth: 2 });
+    } else if (
+      (s.field(
+        "Encrypted data",
+        `${r.toLocaleString("en-US")} bytes`,
+        () => s.unknown(r),
+        {
+          depth: 1,
+          hidden: !0,
+          note: "Ciphertext, ending in a 16-byte tag that shows any change. Only the two ends can read it.",
+        },
+      ),
+      a.inner)
+    ) {
+      s.field("Inside", a.inner.what, () => {}, { depth: 2, inside: !0 });
+      for (const i of a.inner.text ?? [])
+        s.field("", `${Pr(i)}␍␊`, () => {}, { depth: 3, inside: !0, mono: !0 });
+    }
+  }
+  return s;
+}
+function nd(e) {
+  const t = new me("ssh", "SSH");
+  if (e.sealed)
+    return (
+      (t.name = "SSH · encrypted packet"),
+      t.field(
+        "Encrypted packet",
+        `${e.sealed} bytes`,
+        () => t.unknown(e.sealed),
+        {
+          hidden: !0,
+          note: "With chacha20-poly1305 even the length is encrypted; a 16-byte tag at the end shows any change.",
+        },
+      ),
+      t.field("Inside", e.inside, () => {}, { depth: 1, inside: !0 }),
+      t
+    );
+  const s = new me("x", ""),
+    a = (r, i, l = 1) =>
+      s.field(
+        r,
+        i.length > 60 ? `${i.slice(0, 57)}…` : i,
+        () => s.u32(i.length).ascii(i),
+        { depth: l, mono: !0 },
+      );
+  if (e.msg === "kexinit") {
+    (s.field("Message", "20 (KEXINIT)", () => s.u8(20)),
+      s.field("Cookie", "16 random bytes", () => s.unknown(16), {
+        depth: 1,
+        hidden: !0,
+      }));
+    const r = [
+      ["Key exchange", e.kex],
+      ["Host keys", e.hostkeys],
+      ["Ciphers, out", e.ciphers],
+      ["Ciphers, in", e.ciphers],
+      ["MACs, out", e.macs],
+      ["MACs, in", e.macs],
+      ["Compression, out", e.compression],
+      ["Compression, in", e.compression],
+      ["Languages, out", []],
+      ["Languages, in", []],
+    ];
+    for (const [i, l] of r) a(i, l.join(","));
+    (s.field("First packet follows", "0", () => s.u8(0), { depth: 1 }),
+      s.field("Reserved", "0", () => s.u32(0), { depth: 1 }));
+  } else
+    e.msg === "ecdh_init"
+      ? (s.field("Message", "30 (KEX_ECDH_INIT)", () => s.u8(30)),
+        s.field(
+          "Public keys",
+          `${e.q} bytes (sntrup761 1,158 + X25519 32)`,
+          () => s.u32(e.q).unknown(e.q),
+          { depth: 1, hidden: !0 },
+        ))
+      : e.msg === "ecdh_reply"
+        ? (s.field("Message", "31 (KEX_ECDH_REPLY)", () => s.u8(31)),
+          s.field(
+            "Host key",
+            `${e.ks} bytes: ssh-ed25519 public key`,
+            () => s.u32(e.ks).unknown(e.ks),
+            { depth: 1, hidden: !0 },
+          ),
+          s.field(
+            "Server’s half",
+            `${e.q} bytes (sntrup761 ciphertext 1,039 + X25519 32)`,
+            () => s.u32(e.q).unknown(e.q),
+            { depth: 1, hidden: !0 },
+          ),
+          s.field(
+            "Signature",
+            `${e.sig} bytes: ssh-ed25519 signature over the exchange`,
+            () => s.u32(e.sig).unknown(e.sig),
+            { depth: 1, hidden: !0 },
+          ))
+        : e.msg === "newkeys" &&
+          s.field("Message", "21 (NEWKEYS)", () => s.u8(21), {
+            note: "From the next packet on, this side encrypts.",
+          });
+  let n = 8 - ((5 + s.length) % 8);
+  (n < 4 && (n += 8),
+    t.field("Packet length", 1 + s.length + n, () => t.u32(1 + s.length + n), {
+      note: "Bytes after this field.",
+    }),
+    t.field("Padding length", n, () => t.u8(n), {
+      note: "Random padding brings the packet to a multiple of 8 bytes.",
+    }));
+  const o = t.length;
+  t.raw(s.bytes);
+  for (const r of s.fields)
+    t.fields.push({ ...r, from: r.from + o, to: r.to + o });
+  return (
+    t.field("Padding", `${n} random bytes`, () => t.unknown(n), { hidden: !0 }),
+    t
+  );
+}
+const Po = { A: 1, NS: 2, MX: 15, AAAA: 28, OPT: 41 };
+function ad(e) {
+  const t = new me("dns", "DNS"),
+    s = new Map(),
+    a = (d) => {
+      const y = d.split(".");
+      for (let w = 0; w < y.length; w++) {
+        const k = y.slice(w).join(".");
+        if (s.has(k)) return t.u16(49152 | s.get(k));
+        (t.length < 16383 && s.set(k, t.length), t.u8(y[w].length).ascii(y[w]));
+      }
+      t.u8(0);
+    },
+    n =
+      (e.response ? 32768 : 0) |
+      (e.aa ? 1024 : 0) |
+      (e.rd ? 256 : 0) |
+      (e.ra ? 128 : 0),
+    o = [
+      e.response ? "response" : "query",
+      e.aa && "AA (authoritative)",
+      e.rd && "RD (recursion desired)",
+      e.ra && "RA (recursion available)",
+    ].filter(Boolean),
+    r = (d) => d ?? [],
+    i = r(e.ar).length + (e.edns ? 1 : 0);
+  (t.field("Transaction ID", Qe(e.id), () => t.u16(e.id), {
+    note: "Picked at random; the answer must carry the same one.",
+    example: !0,
+  }),
+    t.field("Flags", `${Qe(n)}: ${o.join(", ")}`, () => t.u16(n)),
+    t.field("Questions", 1, () => t.u16(1)),
+    t.field("Answers", r(e.an).length, () => t.u16(r(e.an).length)),
+    t.field("Authority records", r(e.ns).length, () => t.u16(r(e.ns).length)),
+    t.field("Additional records", i, () => t.u16(i)));
+  const [l, c] = e.q;
+  t.field("Question", `${l}, type ${c}, class IN`, () => {
+    (a(l), t.u16(Po[c]).u16(1));
+  });
+  const h = (d, [y, w, k, g]) => {
+    const T = w === "MX" ? `${g[0]} ${g[1]}` : g;
+    t.field(
+      d,
+      `${y} ${w} ${T} (TTL ${k.toLocaleString("en-US")} s)`,
+      () => {
+        (a(y), t.u16(Po[w]).u16(1).u32(k));
+        const v = t.length;
+        (t.u16(0),
+          w === "A"
+            ? t.raw(bt(g))
+            : w === "AAAA"
+              ? t.raw(zc(g))
+              : w === "NS"
+                ? a(g)
+                : w === "MX" && (t.u16(g[0]), a(g[1])));
+        const I = t.length - v - 2;
+        ((t.bytes[v] = I >> 8), (t.bytes[v + 1] = I & 255));
+      },
+      { example: e.exampleTtl && d === "Answer" },
+    );
+  };
+  return (
+    r(e.an).forEach((d) => h("Answer", d)),
+    r(e.ns).forEach((d) => h("Authority", d)),
+    r(e.ar).forEach((d) => h("Additional", d)),
+    e.edns &&
+      t.field(
+        "EDNS",
+        `UDP size ${e.edns.size}, DNSSEC OK = 0`,
+        () => t.u8(0).u16(41).u16(e.edns.size).u32(0).u16(0),
+        {
+          note: "Says how big a UDP answer can be. DNSSEC signatures are not asked for here, to keep the lesson short; a validating resolver like 8.8.8.8 does ask for them.",
+        },
+      ),
+    t
+  );
+}
+const Co = [
+    "",
+    "Discover",
+    "Offer",
+    "Request",
+    "Decline",
+    "ACK",
+    "NAK",
+    "Release",
+    "Inform",
+  ],
+  od = {
+    1: ["Subnet mask", "ip"],
+    3: ["Router", "ip"],
+    6: ["DNS server", "ip"],
+    12: ["Host name", "text"],
+    28: ["Broadcast address", "ip"],
+    50: ["Requested address", "ip"],
+    51: ["Lease time", "secs"],
+    53: ["Message type", "type"],
+    54: ["Server identifier", "ip"],
+    55: ["Parameters wanted", "list"],
+    58: ["Renewal time (T1)", "secs"],
+    59: ["Rebinding time (T2)", "secs"],
+    60: ["Vendor class", "text"],
+    61: ["Client identifier", "mac"],
+    81: ["Client FQDN", "fqdn"],
+  };
+function rd(e) {
+  const t = new me("dhcp", `DHCP ${Co[e.options.find(([a]) => a === 53)[1]]}`),
+    s = (a, n, o) => t.field(a, n, () => t.raw(bt(n)), { note: o });
+  (t.field(
+    "Message",
+    e.op === 1 ? "1 (request, from a client)" : "2 (reply, from a server)",
+    () => t.u8(e.op),
+  ),
+    t.field("Hardware", "Ethernet, 6-byte addresses", () => t.u8(1).u8(6)),
+    t.field("Hops", "0", () => t.u8(0)),
+    t.field("Transaction ID", Qe(e.xid, 8), () => t.u32(e.xid), {
+      note: "Chosen by the client; every reply repeats it.",
+    }),
+    t.field("Seconds", "0", () => t.u16(0)),
+    t.field("Flags", "0x0000 (unicast replies are fine)", () => t.u16(0), {
+      note: "Broadcast flag off: the server may send straight to the client’s MAC address.",
+    }),
+    s(
+      "Client address",
+      e.ciaddr ?? "0.0.0.0",
+      "Filled in only when the client already has an address (renewing).",
+    ),
+    s(
+      "Your address",
+      e.yiaddr ?? "0.0.0.0",
+      "The address the server is giving out.",
+    ),
+    s("Next server", e.siaddr ?? "0.0.0.0"),
+    s("Relay agent", "0.0.0.0"),
+    t.field(
+      "Client MAC",
+      qe.laptop,
+      () => t.raw(is(qe.laptop)).raw(Array(10).fill(0)),
+      { example: !0 },
+    ),
+    t.field("Server name, boot file", "empty", () => t.raw(Array(192).fill(0))),
+    t.field(
+      "Magic cookie",
+      "99.130.83.99 (DHCP)",
+      () => t.raw([99, 130, 83, 99]),
+      { note: "Marks the options that follow as DHCP." },
+    ));
+  for (const [a, n] of e.options) {
+    const [o, r] = od[a],
+      i =
+        r === "type"
+          ? `${n} (${Co[n]})`
+          : r === "secs"
+            ? `${n.toLocaleString("en-US")} s (${n / 3600} h)`
+            : r === "list"
+              ? n.join(", ")
+              : r === "mac"
+                ? `01 ${qe.laptop}`
+                : n;
+    t.field(
+      `Option ${a}`,
+      `${o}: ${i}`,
+      () => {
+        (t.u8(a),
+          r === "ip"
+            ? t.u8(4).raw(bt(n))
+            : r === "type"
+              ? t.u8(1).u8(n)
+              : r === "secs"
+                ? t.u8(4).u32(n)
+                : r === "text"
+                  ? t.u8(n.length).ascii(n)
+                  : r === "list"
+                    ? t.u8(n.length).raw(n)
+                    : r === "mac"
+                      ? t.u8(7).u8(1).raw(is(qe.laptop))
+                      : r === "fqdn" &&
+                        t
+                          .u8(3 + n.length)
+                          .u8(0)
+                          .u8(0)
+                          .u8(0)
+                          .ascii(n));
+      },
+      { example: ["text", "list", "fqdn"].includes(r) },
+    );
+  }
+  if ((t.field("End", "255", () => t.u8(255)), t.length < 300)) {
+    const a = 300 - t.length;
+    t.field("Padding", `${a} zero bytes, up to the 300-byte minimum`, () =>
+      t.raw(Array(a).fill(0)),
+    );
+  }
+  return t;
+}
+function id(e) {
+  const t = new me("rtp", "RTP + audio");
+  return (
+    t.field("Version etc.", "2, no padding, no extension, no CSRCs", () =>
+      t.u8(128),
+    ),
+    t.field(
+      "Marker, payload type",
+      `${e.marker ? 1 : 0}, ${e.pt} (Opus, agreed when the call was set up)`,
+      () => t.u8((e.marker ? 128 : 0) | e.pt),
+      { example: !0 },
+    ),
+    t.field("Sequence number", e.seq, () => t.u16(e.seq), {
+      note: "Counts up by one per packet, so the app can spot a missing or late one.",
+      example: !0,
+    }),
+    t.field("Timestamp", e.ts, () => t.u32(e.ts), {
+      note: "Audio clock at 48,000 per second: +960 per 20 ms frame.",
+      example: !0,
+    }),
+    t.field("SSRC", Qe(e.ssrc, 8), () => t.u32(e.ssrc), {
+      note: "Identifies this audio stream.",
+      example: !0,
+    }),
+    t.field(
+      "Audio",
+      `${e.audio} bytes of Opus audio (20 ms)`,
+      () => t.unknown(e.audio),
+      { hidden: !0 },
+    ),
+    t
+  );
+}
+const ld = [
+  ["F", 1, "FIN"],
+  ["S", 2, "SYN"],
+  ["R", 4, "RST"],
+  ["P", 8, "PSH"],
+  ["A", 16, "ACK"],
+];
+function cd(e) {
+  const t = ld.filter(([s]) => e.includes(s));
+  return {
+    bits: t.reduce((s, [, a]) => s | a, 0),
+    names: t.map(([, , s]) => s).join(", "),
+  };
+}
+const Ro = (e, t, s, a) => [...bt(e), ...bt(t), 0, s, a >> 8, a & 255];
+class dd {
+  constructor(t) {
+    ((this.lesson = t),
+      (this.alias = new Map()),
+      (this.ids = new Map()),
+      (this.conns = new Map()),
+      (this.pending = []),
+      (this.remote = new Map()),
+      (this.built = []));
+  }
+  ipId(t) {
+    this.ids.has(t) || this.ids.set(t, Gn(`id ${t}`) & 65535);
+    const s = this.ids.get(t);
+    return (this.ids.set(t, (s + 1) & 65535), s);
+  }
+  endpointMac(t, s) {
+    this.remote.has(t) || this.remote.set(t, this.remote.size);
+    const a = this.remote.get(t);
+    return `00:00:5e:00:53:${(s ? 128 + a : 64 + a).toString(16)}`;
+  }
+  link(t) {
+    const { src: s, dst: a } = t;
+    if (Gt(s) || Gt(a)) {
+      const n = Gt(s),
+        o = a === "255.255.255.255" || a === "Broadcast";
+      return {
+        at: "Seen on the laptop’s home network",
+        src: n ? qe.laptop : qe.lan,
+        dst: o ? qe.all : n ? qe.lan : qe.laptop,
+        srcNote: n
+          ? "The laptop’s network card."
+          : "The router’s side facing the home network.",
+        dstNote: o
+          ? "Broadcast: every device on the network receives it."
+          : n
+            ? "The router: anything beyond the home network goes to it first."
+            : "The laptop.",
+      };
+    }
+    return s === Ao
+      ? {
+          at: "Seen as it leaves the router’s internet side",
+          src: qe.wan,
+          dst: qe.isp,
+          srcNote: "The router’s internet-facing port.",
+          dstNote: "The internet provider’s router, the next hop.",
+        }
+      : {
+          at: `Seen as it leaves ${s}`,
+          src: this.endpointMac(s),
+          dst: this.endpointMac(s, !0),
+          srcNote: "The sender’s network card.",
+          dstNote:
+            "The sender’s next router; each hop puts the packet in a new frame.",
+        };
+  }
+  ttl(t, s) {
+    return s.ttl !== void 0
+      ? s.ttl
+      : Gt(t.dst) && !Gt(t.src)
+        ? zs(t.src) - Bn(t.src)
+        : zs(t.src);
+  }
+  conn(t, s) {
+    const a = (l) => this.alias.get(l) ?? l,
+      n = a(`${t.src}:${s.sport}`),
+      o = a(`${t.dst}:${s.dport}`),
+      r = [n, o].sort().join(" ");
+    this.conns.has(r) || this.conns.set(r, { key: r, ends: {}, ts: !1 });
+    const i = this.conns.get(r);
+    for (const [l, c] of [
+      [n, n.split(":")[0]],
+      [o, o.split(":")[0]],
+    ])
+      i.ends[l] ??= {
+        ip: c,
+        isn: Gn(`isn ${r} ${l}`),
+        next: 0,
+        got: 0,
+        ooo: [],
+        tsBase: Gn(`ts ${l}`) % 4e9,
+        peerTs: 0,
+        win: xs(c) ? [1026, 8] : [501, 7],
+      };
+    return { c: i, me: i.ends[n], peer: i.ends[o], meKey: n, peerKey: o };
+  }
+  deliver(t) {
+    this.pending = this.pending.filter((s) => {
+      if (s.at > t + 1e-9) return !0;
+      const a = s.to;
+      if (s.seq === a.got)
+        for (
+          a.got += s.len, a.ooo.sort((n, o) => n[0] - o[0]);
+          a.ooo.length && a.ooo[0][0] <= a.got;
+        )
+          a.got = Math.max(a.got, a.ooo.shift()[1]);
+      else s.seq > a.got && a.ooo.push([s.seq, s.seq + s.len]);
+      return (s.tsval && (a.peerTs = s.tsval), !1);
+    });
+  }
+  tcp(t, s, a, n, o, r) {
+    const { c: i, me: l, peer: c } = this.conn(t, s),
+      { bits: h, names: d } = cd(s.flags),
+      y = h & 2,
+      w = h & 1,
+      k = h & 16,
+      g = a ? a.length : 0,
+      T = xs(l.ip);
+    y && !k && (i.ts = !T);
+    const v = [],
+      I = Math.round(n * 1e3),
+      q = (l.tsBase + I) >>> 0;
+    if (
+      (y && !k && T
+        ? v.push(["MSS", 1460], ["NOP"], ["WS", 8], ["NOP"], ["NOP"], ["SACKP"])
+        : y && !k
+          ? v.push(["MSS", 1460], ["SACKP"], ["TS", q, 0], ["NOP"], ["WS", 7])
+          : y
+            ? v.push(
+                ...(i.ts
+                  ? [
+                      ["MSS", 1460],
+                      ["SACKP"],
+                      ["TS", q, l.peerTs],
+                      ["NOP"],
+                      ["WS", 7],
+                    ]
+                  : [
+                      ["MSS", 1460],
+                      ["NOP"],
+                      ["NOP"],
+                      ["SACKP"],
+                      ["NOP"],
+                      ["WS", 7],
+                    ]),
+              )
+            : i.ts && v.push(["NOP"], ["NOP"], ["TS", q, l.peerTs]),
+      s.sack)
+    ) {
+      const V = c && l.ooo.map(([ee, Ke]) => [ee, Ke]);
+      v.push(["NOP"], ["NOP"], ["SACK", V]);
+    }
+    const re = i.ts ? xo - 12 : xo,
+      C = Math.min(g, re),
+      Z = s.seq ?? l.next,
+      R = k ? (s.ack ?? l.got) : 0;
+    (s.seq === void 0 && (l.next += g + (y ? 1 : 0) + (w ? 1 : 0)),
+      o.lost ||
+        this.pending.push({
+          at: n + Er(this.lesson, o.from, o.to),
+          to: c,
+          seq: Z,
+          len: g + (y ? 1 : 0) + (w ? 1 : 0),
+          tsval: i.ts ? q : 0,
+        }));
+    const x = new me("tcp", ""),
+      H = v.reduce(
+        (V, [ee, Ke]) =>
+          V +
+          {
+            NOP: 1,
+            MSS: 4,
+            WS: 3,
+            SACKP: 2,
+            TS: 10,
+            SACK: 2 + 8 * (ee === "SACK" ? Ke.length : 0),
+          }[ee],
+        0,
+      ),
+      we = 20 + H;
+    ((x.summary = `${s.sport} → ${s.dport}, ${d}`),
+      (x.name = `TCP · ${we} bytes`),
+      x.field("Source port", s.sport, () => x.u16(s.sport), {
+        note: T
+          ? t.src === Ao
+            ? "The router’s NAT swapped in its own port for the laptop’s."
+            : "Picked by the laptop’s system for this connection."
+          : void 0,
+      }),
+      x.field("Destination port", s.dport, () => x.u16(s.dport)),
+      x.field(
+        "Sequence number",
+        y ? "0 (relative)" : `${Z} (relative)`,
+        () => x.u32((l.isn + Z) >>> 0),
+        {
+          note: y
+            ? "This side’s starting number. Shown as 0; the real one is random."
+            : "Position of this segment’s first byte, counted from this side’s SYN.",
+        },
+      ),
+      x.field("Real sequence number", (l.isn + Z) >>> 0, () => {}, {
+        depth: 1,
+        example: !0,
+      }),
+      x.field(
+        "Acknowledgment",
+        k ? `${R} (relative)` : "0 (not used yet)",
+        () => x.u32(k ? (c.isn + R) >>> 0 : 0),
+        {
+          note: k
+            ? "The next byte this side expects: everything before it has arrived."
+            : "A first SYN has nothing to acknowledge.",
+        },
+      ),
+      x.field("Header length", `${we} bytes`, () => x.u8((we / 4) << 4), {
+        note: H ? `20 bytes, plus ${H} of options.` : void 0,
+      }),
+      x.field("Flags", `${Qe(h, 3)} (${d})`, () => x.u8(h)));
+    const ce = l.win[1],
+      P = y ? (k && i.ts ? 65160 : 64240) : l.win[0];
+    x.field(
+      "Window",
+      y
+        ? `${P}`
+        : `${P} (× ${2 ** ce} = ${(P * 2 ** ce).toLocaleString("en-US")} bytes)`,
+      () => x.u16(P),
+      { note: "How much more data this side can take right now.", example: !0 },
+    );
+    const A = x.length;
+    if (
+      (x.field("Checksum", "", () => x.u16(0), {
+        note: "Covers the header, the data and the IP addresses, so damage is caught.",
+      }),
+      x.field("Urgent pointer", "0", () => x.u16(0)),
+      v.length)
+    ) {
+      x.field("Options", `${H} bytes`, () => {}, { heading: !0 });
+      for (const [V, ee, Ke] of v)
+        (V === "NOP" &&
+          x.field("No-op", "1", () => x.u8(1), {
+            depth: 1,
+            note: "Spacing, so the next option lines up.",
+          }),
+          V === "MSS" &&
+            x.field(
+              "Maximum segment size",
+              `${ee} bytes`,
+              () => x.u8(2).u8(4).u16(ee),
+              {
+                depth: 1,
+                note: "The most data this side wants in one segment.",
+              },
+            ),
+          V === "WS" &&
+            x.field(
+              "Window scale",
+              `× ${2 ** ee}`,
+              () => x.u8(3).u8(3).u8(ee),
+              {
+                depth: 1,
+                note: "Window values are multiplied by this, so windows can be larger than 64 KB.",
+              },
+            ),
+          V === "SACKP" &&
+            x.field("SACK permitted", "yes", () => x.u8(4).u8(2), {
+              depth: 1,
+              note: "This side understands selective acknowledgements.",
+            }),
+          V === "TS" &&
+            x.field(
+              "Timestamps",
+              `value ${ee}, echo ${Ke}`,
+              () => x.u8(8).u8(10).u32(ee).u32(Ke),
+              {
+                depth: 1,
+                note: "Used to measure round trips; both sides offered them.",
+                example: !0,
+              },
+            ),
+          V === "SACK" &&
+            x.field(
+              "SACK",
+              ee.map(([Te, et]) => `has ${Te}–${et - 1}`).join(", "),
+              () => {
+                x.u8(5).u8(2 + 8 * ee.length);
+                for (const [Te, et] of ee)
+                  x.u32((c.isn + Te) >>> 0).u32((c.isn + et) >>> 0);
+              },
+              {
+                depth: 1,
+                note: "Bytes that arrived after the gap, so only the gap needs resending.",
+              },
+            ));
+    }
+    const _ = a ? a.bytes.slice(0, C) : [],
+      J = bs([...Ro(t.src, t.dst, 6, we + C), ...x.bytes, ..._]),
+      Re = x.fields.find((V) => V.name === "Checksum");
+    return (
+      J === null
+        ? ((x.bytes[A] = x.bytes[A + 1] = null),
+          (Re.value = "covers bytes not shown here"),
+          (Re.hidden = !0))
+        : ((x.bytes[A] = J >> 8),
+          (x.bytes[A + 1] = J & 255),
+          (Re.value = Qe(J))),
+      {
+        header: x,
+        first: C,
+        segments: Math.max(1, r ?? Math.ceil(g / re)),
+        mss: re,
+        seq: Z,
+        ack: R,
+        hlen: we,
+      }
+    );
+  }
+  frame(t, s, a) {
+    const n = t.row,
+      o = n.wire;
+    if (!o) return null;
+    const r = parseFloat(n.time);
+    (this.deliver(r), o.alias && this.alias.set(o.alias[0], o.alias[1]));
+    const i = o.arp
+        ? {
+            at: "Seen on the laptop’s home network",
+            src: n.src,
+            dst: n.dst === "Broadcast" ? qe.all : n.dst,
+            srcNote: "The sender’s network card.",
+            dstNote:
+              n.dst === "Broadcast"
+                ? "Broadcast: every device on the network receives it."
+                : "Straight back to the device that asked.",
+          }
+        : this.link(n),
+      l = [],
+      c = new me("eth", "Ethernet II · 14 bytes");
+    ((c.summary = `${i.src} → ${i.dst}`),
+      c.field("Destination", i.dst, () => c.raw(is(i.dst)), {
+        note: i.dstNote,
+        example: i.dst !== qe.all,
+      }),
+      c.field("Source", i.src, () => c.raw(is(i.src)), {
+        note: i.srcNote,
+        example: !0,
+      }),
+      c.field(
+        "Type",
+        o.arp ? "0x0806 (ARP)" : "0x0800 (IPv4)",
+        () => c.u16(o.arp ? 2054 : 2048),
+        { note: "What the frame carries." },
+      ),
+      l.push(c));
+    let h = 1,
+      d = null,
+      y;
+    if (o.arp) {
+      const T = new me(
+        "arp",
+        `ARP ${o.arp.op === 1 ? "request" : "reply"} · 28 bytes`,
+      );
+      (T.field("Hardware type", "1 (Ethernet)", () => T.u16(1)),
+        T.field("Protocol type", "0x0800 (IPv4)", () => T.u16(2048)),
+        T.field("Address sizes", "6 (MAC), 4 (IPv4)", () => T.u8(6).u8(4)),
+        T.field(
+          "Operation",
+          o.arp.op === 1 ? "1 (request: who has …?)" : "2 (reply: … is at …)",
+          () => T.u16(o.arp.op),
+        ),
+        T.field(
+          "Sender MAC",
+          o.arp.sender[0],
+          () => T.raw(is(o.arp.sender[0])),
+          { example: !0 },
+        ),
+        T.field("Sender IP", o.arp.sender[1], () => T.raw(bt(o.arp.sender[1]))),
+        T.field(
+          "Target MAC",
+          o.arp.target[0],
+          () => T.raw(is(o.arp.target[0])),
+          {
+            note:
+              o.arp.op === 1
+                ? "All zeros: this is what the request wants to find out."
+                : void 0,
+            example: o.arp.op === 2,
+          },
+        ),
+        T.field("Target IP", o.arp.target[1], () => T.raw(bt(o.arp.target[1]))),
+        l.push(T));
+    } else {
+      const T = o.tcp ? 6 : o.udp ? 17 : 1,
+        v = [];
+      let I;
+      if (o.tcp) {
+        const P = o.tcp.data ? Lo(n, o.tcp.data) : null;
+        ((d = this.tcp(n, o.tcp, P, r, t, o.tcp.segments)),
+          (h = d.segments),
+          (I = d.header),
+          v.push(I),
+          P &&
+            ((P.full = P.length),
+            d.first < P.length &&
+              ((P.bytes = P.bytes.slice(0, d.first)), (P.cut = !0)),
+            v.push(P)));
+      } else if (o.udp) {
+        const P = Lo(n, o.udp.data),
+          A = new me("udp", "UDP · 8 bytes"),
+          _ = 8 + P.length;
+        ((A.summary = `${o.udp.sport} → ${o.udp.dport}`),
+          A.field("Source port", o.udp.sport, () => A.u16(o.udp.sport)),
+          A.field("Destination port", o.udp.dport, () => A.u16(o.udp.dport)),
+          A.field("Length", `${_} bytes`, () => A.u16(_), {
+            note: "UDP header and data. That is all of UDP: no numbering, no acknowledgements.",
+          }));
+        const J = bs([
+          ...Ro(n.src, n.dst, 17, _),
+          ...A.bytes,
+          0,
+          0,
+          ...P.bytes,
+        ]);
+        (A.field(
+          "Checksum",
+          J === null ? "covers bytes not shown here" : Qe(J || 65535),
+          () => (J === null ? A.unknown(2) : A.u16(J || 65535)),
+          {
+            note: "Covers the header, the data and the IP addresses.",
+            hidden: J === null,
+          },
+        ),
+          v.push(A, P));
+      } else if (o.icmp) {
+        const P = o.icmp,
+          A = new me("icmp", ""),
+          _ = {
+            "8,0": "Echo request",
+            "0,0": "Echo reply",
+            "11,0": "Time exceeded (TTL reached 0)",
+            "3,3": "Destination unreachable (port unreachable)",
+          };
+        (A.field("Type", `${P.type}`, () => A.u8(P.type), {
+          note: _[`${P.type},${P.code}`],
+        }),
+          A.field("Code", `${P.code}`, () => A.u8(P.code)));
+        const J = A.length;
+        if (
+          (A.field("Checksum", "", () => A.u16(0), {
+            note: "Covers the whole ICMP message.",
+          }),
+          P.type === 8 || P.type === 0)
+        )
+          (A.field("Identifier", Qe(P.id), () => A.u16(P.id), {
+            note: "Matches replies to this ping program.",
+          }),
+            A.field("Sequence number", P.seq, () => A.u16(P.seq), {
+              note: "Windows counts up across every ping it sends.",
+            }),
+            A.field(
+              "Data",
+              `"${P.data}" (${P.data.length} bytes)`,
+              () => A.ascii(P.data),
+              {
+                note:
+                  P.type === 8
+                    ? "Windows ping’s filler: the alphabet, a to w, then again."
+                    : "Sent back exactly as it came.",
+                mono: !0,
+              },
+            ));
+        else {
+          A.field("Unused", "0", () => A.u32(0));
+          const V = this.built[s + P.quote],
+            ee = 14,
+            Ke = V.bytes.slice(ee, ee + (V.ipLength ?? V.bytes.length - ee)),
+            Te = Ke.slice(0, P.quoteBytes === 8 ? 28 : Ke.length);
+          ((Te[8] = P.ttl), (Te[10] = Te[11] = 0));
+          const et = bs(Te.slice(0, 20));
+          ((Te[10] = et >> 8),
+            (Te[11] = et & 255),
+            A.field(
+              "Original packet",
+              P.quoteBytes === 8
+                ? "its IP header and first 8 bytes (28 bytes)"
+                : `all ${Te.length} bytes of it`,
+              () => A.raw(Te),
+              {
+                note: `The packet that caused this, as the reporting device received it (TTL ${P.ttl}), so the sender can tell which packet it was.`,
+              },
+            ),
+            A.field(
+              "Its source, destination",
+              `${n.dst} → ${a[s + P.quote].row.dst}`,
+              () => {},
+              { depth: 1 },
+            ));
+        }
+        const Re = bs(A.bytes);
+        ((A.bytes[J] = Re >> 8),
+          (A.bytes[J + 1] = Re & 255),
+          (A.fields.find((V) => V.name === "Checksum").value = Qe(Re)),
+          (A.name = `ICMP · ${_[`${P.type},${P.code}`]}`),
+          v.push(A));
+      }
+      const re = 20 + v.reduce((P, A) => P + A.length, 0),
+        C = new me("ip", "IPv4 · 20 bytes"),
+        Z = this.ttl(n, o),
+        R = o.tcp
+          ? !0
+          : (o.df ?? (!xs(n.src) && !!o.udp && n.src !== Aa && n.src !== Lr)),
+        x =
+          o.natOf !== void 0 ? this.built[s + o.natOf].ipId : this.ipId(n.src),
+        H = xs(n.src)
+          ? `Windows starts at 128.${Z !== 128 ? ` Set to ${Z} on purpose here.` : ""}`
+          : Gt(n.dst) && !Gt(n.src)
+            ? `Started at ${zs(n.src)}; ${Bn(n.src)} router${Bn(n.src) === 1 ? "" : "s"} on the way each took 1.`
+            : `As sent: this system starts at ${zs(n.src)}.`;
+      ((C.summary = `${n.src} → ${n.dst}`),
+        C.field("Version, header length", "4, 20 bytes", () => C.u8(69), {
+          note: "IPv4, with no options.",
+        }),
+        C.field("DSCP, ECN", "0, 0", () => C.u8(0), {
+          note: "Priority and congestion marks; 0 means ordinary traffic.",
+        }),
+        C.field("Total length", `${re} bytes`, () => C.u16(re), {
+          note: "This header and everything inside it.",
+        }),
+        C.field("Identification", Qe(x), () => C.u16(x), {
+          note: "Lets the receiver reassemble the pieces if the packet gets split.",
+          example: !0,
+        }),
+        C.field(
+          "Flags",
+          R ? "DF (don’t fragment)" : "none",
+          () => C.u16(R ? 16384 : 0),
+          {
+            note: R
+              ? "Routers must not split it; if it’s too big they report back instead."
+              : "Routers may split it if a link is too small.",
+            example: !o.tcp,
+          },
+        ),
+        C.field("Time to live", Z, () => C.u8(Z), {
+          note: H,
+          example: n.src === ka,
+        }),
+        C.field(
+          "Protocol",
+          T === 6 ? "6 (TCP)" : T === 17 ? "17 (UDP)" : "1 (ICMP)",
+          () => C.u8(T),
+        ));
+      const we = C.length;
+      (C.field("Header checksum", "", () => C.u16(0), {
+        note: "Covers this header only; every router recomputes it after lowering the TTL.",
+      }),
+        C.field("Source", n.src, () => C.raw(bt(n.src))),
+        C.field("Destination", n.dst, () => C.raw(bt(n.dst))));
+      const ce = bs(C.bytes);
+      ((C.bytes[we] = ce >> 8),
+        (C.bytes[we + 1] = ce & 255),
+        (C.fields.find((P) => P.name === "Header checksum").value = Qe(ce)),
+        l.push(C, ...v),
+        (y = x));
+    }
+    const w = ko(l),
+      k = o.arp ? void 0 : w.bytes.length - 14;
+    if (w.bytes.length < 60) {
+      const T = new me(
+          "pad",
+          `Ethernet padding · ${60 - w.bytes.length} bytes`,
+        ),
+        v = 60 - w.bytes.length;
+      T.field("Padding", `${v} zero bytes`, () => T.raw(Array(v).fill(0)), {
+        note: "Ethernet frames are at least 60 bytes (64 with the checksum the card adds), so short ones are padded.",
+      });
+      const I = ko([T]);
+      w.layers.push({ ...I.layers[0], from: w.bytes.length, to: 60 });
+      for (const q of I.fields)
+        w.fields.push({
+          ...q,
+          from: q.from + w.bytes.length,
+          to: q.to + w.bytes.length,
+        });
+      w.bytes.push(...I.bytes);
+    }
+    const g = {
+      index: s,
+      at: i.at,
+      ...w,
+      ipLength: k,
+      ipId: y,
+      segments: h,
+      tcp: d && { seq: d.seq, ack: d.ack, hlen: d.hlen, mss: d.mss },
+      messageLength: (() => {
+        const T = l.find((v) => v.full !== void 0);
+        return T ? T.full : null;
+      })(),
+    };
+    return ((this.built[s] = g), g);
+  }
+}
+const Wn = new WeakMap();
+function Cr(e) {
+  if (!Wn.has(e)) {
+    const t = new dd(e),
+      s = bn(e);
+    Wn.set(
+      e,
+      s.map((a, n) => t.frame(a, n, s)),
+    );
+  }
+  return Wn.get(e);
+}
+const pd = {
+    eth: "slate",
+    arp: "amber",
+    ip: "blue",
+    tcp: "green",
+    udp: "green",
+    icmp: "amber",
+    tls: "teal",
+    pad: "grey",
+  },
+  xa = (e) => pd[e] ?? "violet",
+  hd = {
+    eth: "Ethernet",
+    arp: "ARP",
+    ip: "IPv4",
+    tcp: "TCP",
+    udp: "UDP",
+    icmp: "ICMP",
+    pad: "Padding",
+    tls: "TLS",
+  };
+function ud() {
+  return `
+  <div class="inspector" hidden data-t-label="Packet inspector" aria-label="${b("Packet inspector")}">
+    <div class="ins-head">
+      <span class="ins-badge step-badge"></span>
+      <div class="ins-title"><b></b><span></span></div>
+      <div class="ins-nav">
+        <button type="button" data-ins="prev" data-t-label="Previous packet" aria-label="${b("Previous packet")}" data-t-title="Previous packet (←)" title="${b("Previous packet (←)")}">‹</button>
+        <button type="button" data-ins="next" data-t-label="Next packet" aria-label="${b("Next packet")}" data-t-title="Next packet (→)" title="${b("Next packet (→)")}">›</button>
+        <button type="button" data-ins="close" data-t-label="Close" aria-label="${b("Close")}" data-t-title="Close (Esc)" title="${b("Close (Esc)")}">✕</button>
+      </div>
+    </div>
+    <div class="ins-where"></div>
+    <div class="ins-bar"></div>
+    <div class="ins-body">
+      <div class="ins-tree"></div>
+      <div class="ins-hex"></div>
+    </div>
+    <div class="ins-foot"><span><i class="eg" ${j("E.G.")}</i> <span ${j("an example value: it differs in every real capture")}</span></span><span><b>··</b> <span ${j("bytes the lesson can’t show: encrypted, random, or a file’s contents")}</span></span></div>
+  </div>`;
+}
+function fd(e, t) {
+  const s = e.to > e.from ? ` data-from="${e.from}" data-to="${e.to}"` : "";
+  return `
+    <div class="ins-field ${[`d${e.depth ?? 0}`, e.heading && "is-heading", e.hidden && "is-hidden", e.inside && "is-inside", e.mono && "is-mono"].filter(Boolean).join(" ")}" data-field="${t}"${s}>
+      <span class="ins-name">${B(b(e.name))}</span>
+      <span class="ins-value">${B(b(e.value))}${e.example ? ` <i class="eg">${b("E.G.")}</i>` : ""}</span>
+      ${e.note ? `<p class="ins-note">${B(b(e.note))}</p>` : ""}
+    </div>`;
+}
+function md(e) {
+  return e.layers
+    .map((t) => {
+      const s = e.fields
+          .map((n, o) => [n, o])
+          .filter(([n]) => n.layer === t.id),
+        a = t.to - t.from;
+      return `
+      <section class="ins-layer c-${xa(t.id)}" data-layer="${t.id}">
+        <h4><span>${B(b(t.name))}</span>${t.summary ? `<em>${B(b(t.summary))}</em>` : ""}</h4>
+        ${s.map(([n, o]) => fd(n, o)).join("")}
+        
+      </section>`;
+    })
+    .join("");
+}
+function yd(e) {
+  const t = (a) => e.layers.find((n) => a >= n.from && a < n.to)?.id ?? "pad",
+    s = [];
+  for (let a = 0; a < e.bytes.length; a += 16) {
+    const n = e.bytes.slice(a, a + 16),
+      o = n
+        .map(
+          (i, l) =>
+            `<span class="hx c-${xa(t(a + l))}${i === null ? " is-unknown" : ""}" data-i="${a + l}">${i === null ? "··" : i.toString(16).padStart(2, "0")}</span>`,
+        )
+        .join(""),
+      r = n
+        .map(
+          (i, l) =>
+            `<span class="as${i === null ? " is-unknown" : ""}" data-i="${a + l}">${i === null ? "·" : i >= 32 && i < 127 ? B(String.fromCharCode(i)) : "."}</span>`,
+        )
+        .join("");
+    s.push(
+      `<div class="hx-row"><span class="hx-at">${a.toString(16).padStart(4, "0")}</span><span class="hx-bytes">${o}</span><span class="hx-text">${r}</span></div>`,
+    );
+  }
+  return `<div class="hx-head">${b("BYTES")} <span>${b("{n} in this frame", { n: e.bytes.length })}</span></div>${s.join("")}`;
+}
+function gd(e) {
+  const t = e.bytes.length;
+  return e.layers
+    .map((s) => {
+      const a = s.to - s.from;
+      return `<span class="ins-seg c-${xa(s.id)}" data-layer="${s.id}" style="flex:${Math.max(a, t * 0.045)}" title="${B(b(s.name))}"><b>${B(b(hd[s.id] ?? s.name.split(" ·")[0]))}</b><i>${a}</i></span>`;
+    })
+    .join("");
+}
+function wd(e, t, s) {
+  (Rr(e, t, s), Ir(e, t, s));
+}
+function Rr(e, t, s) {
+  const a = Cr(t)[s],
+    n = bn(t)[s],
+    o = n.row;
+  e.dataset.index = s;
+  const r = e.querySelector(".ins-badge");
+  ((r.className = `ins-badge step-badge ${n.color}`),
+    (r.textContent = s + 1),
+    (e.querySelector(".ins-title b").textContent = b(n.label)),
+    (e.querySelector(".ins-title span").textContent = ds(
+      `${o.time} · ${o.src} → ${o.dst} · ${o.proto} · ${o.len}`,
+    )));
+  const i = [b(a.at)];
+  (a.segments > 1 &&
+    i.push(
+      b(
+        "This row stands for {n} TCP segments carrying a {size}-byte message; the first segment is shown",
+        { n: a.segments, size: a.messageLength.toLocaleString(b("en-US")) },
+      ),
+    ),
+    n.lost && i.push(b("This packet was lost on the way")),
+    (e.querySelector(".ins-where").textContent = i.join(" · ")),
+    (e.querySelector(".ins-bar").innerHTML = gd(a)));
+}
+function Ir(e, t, s) {
+  const a = Cr(t)[s];
+  ((e.querySelector(".ins-tree").innerHTML = md(a)),
+    (e.querySelector(".ins-hex").innerHTML = yd(a)),
+    (e.querySelector(".ins-tree").scrollTop = 0),
+    (e.querySelector(".ins-hex").scrollTop = 0),
+    (e._frame = a));
+}
+function Zs(e, t, s, a) {
+  if (
+    (e.querySelectorAll(".is-lit").forEach((n) => n.classList.remove("is-lit")),
+    t !== void 0)
+  ) {
+    for (let n = t; n < s; n++)
+      e.querySelectorAll(`[data-i="${n}"]`).forEach((o) =>
+        o.classList.add("is-lit"),
+      );
+    a?.classList.add("is-lit");
+  }
+}
+function Sd(e, t) {
+  (e.addEventListener("click", (s) => {
+    const a = s.target.closest("[data-ins]");
+    a && t[a.dataset.ins]();
+    const n = s.target.closest(".ins-seg");
+    n &&
+      e
+        .querySelector(`.ins-layer[data-layer="${n.dataset.layer}"]`)
+        ?.scrollIntoView({
+          block: "start",
+          behavior: ge() ? "auto" : "smooth",
+        });
+  }),
+    e.addEventListener("mouseover", (s) => {
+      const a = s.target.closest(".ins-field[data-from]");
+      if (a) return Zs(e, Number(a.dataset.from), Number(a.dataset.to), a);
+      const n = s.target.closest("[data-i]");
+      if (n && e._frame) {
+        const o = Number(n.dataset.i),
+          r = e._frame.fields
+            .map((h, d) => [h, d])
+            .filter(([h]) => o >= h.from && o < h.to)
+            .sort((h, d) => h[0].to - h[0].from - (d[0].to - d[0].from));
+        if (!r.length) return Zs(e, o, o + 1);
+        const [i, l] = r[0],
+          c = e.querySelector(`.ins-field[data-field="${l}"]`);
+        (Zs(e, i.from, i.to, c), c?.scrollIntoView({ block: "nearest" }));
+      }
+    }),
+    e.addEventListener("mouseleave", () => Zs(e)));
+}
+function bd(e, { visible: t, onChange: s }) {
+  let a = null;
+  const n = () => !e.hidden && !e.classList.contains("is-closing");
+  function o(l, c) {
+    a = l;
+    const h = n();
+    (e.getAnimations().forEach((d) => d.cancel()),
+      e.classList.remove("is-closing"),
+      (e.hidden = !1),
+      wd(e, l, c),
+      !h &&
+        !ge() &&
+        e.animate(
+          [
+            { opacity: 0, transform: "translateY(26px)" },
+            { opacity: 1, transform: "none" },
+          ],
+          { duration: 320, easing: Dt },
+        ),
+      s(c));
+  }
+  function r() {
+    if (!e.hidden) {
+      if ((s(null), ge())) return (e.hidden = !0);
+      (e.classList.add("is-closing"),
+        e.getAnimations().forEach((l) => l.cancel()),
+        (e.animate(
+          [
+            { opacity: 1, transform: "none" },
+            { opacity: 0, transform: "translateY(18px)" },
+          ],
+          { duration: 200, easing: "ease-in" },
+        ).onfinish = () => {
+          e.classList.contains("is-closing") &&
+            (e.classList.remove("is-closing"), (e.hidden = !0));
+        }));
+    }
+  }
+  function i(l) {
+    if (!n()) return;
+    const c = t(),
+      h = c.indexOf(Number(e.dataset.index)),
+      d = c[h + l];
+    d !== void 0 &&
+      ((e.dataset.index = d),
+      Rr(e, a, d),
+      rs(
+        e.querySelector(".ins-body"),
+        () => e.dataset.index === String(d) && Ir(e, a, d),
+        l,
+        14,
+      ),
+      s(d));
+  }
+  return (
+    Sd(e, { prev: () => i(-1), next: () => i(1), close: r }),
+    {
+      open: o,
+      close: r,
+      step: i,
+      isOpen: n,
+      index: () => (n() ? Number(e.dataset.index) : null),
+    }
+  );
+}
+const vd = [
+  [
+    "network",
+    "NETWORK",
+    '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M8 1.8 L14 5 L8 8.2 L2 5 Z M2 8.4 L8 11.6 L14 8.4 M2 11.6 L8 14.8 L14 11.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  ],
+  [
+    "sequence",
+    "SEQUENCE",
+    '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3 1.5 V14.5 M13 1.5 V14.5" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2"/><path d="M3 4.5 L12 6.5 M12 6.5 L9.6 7.4 M12 6.5 L10.2 4.6 M13 9.5 L4 11.5 M4 11.5 L5.8 9.6 M4 11.5 L6.4 12.4" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>',
+  ],
+];
+function Td() {
+  const e = vd
+    .map(
+      ([t, s, a], n) =>
+        `<button type="button" role="tab" data-view="${t}" aria-selected="${n === 0}" class="${n === 0 ? "is-active" : ""}">${a}<span ${j(s)}</span></button>`,
+    )
+    .join("");
+  return `
+  <section class="panel simulation">
+    ${Ac()}
+    ${Fc()}
+    <div class="view-switch" role="tablist" data-t-label="View" aria-label="${b("View")}" data-t-title="Switch view (V)" title="${b("Switch view (V)")}">${e}<i class="view-indicator"></i></div>
+    ${ud()}
+  </section>`;
+}
+const Or = "protocol-explorer:view",
+  Ed = () => {
+    try {
+      return localStorage.getItem(Or);
+    } catch {
+      return null;
+    }
+  };
+function kd(e, t = () => {}) {
+  const s = e.querySelector(".view-indicator");
+  function a(r, i = !0) {
+    if (
+      (e.classList.toggle("is-sequence", r === "sequence"),
+      e.querySelectorAll(".view-switch button").forEach((l) => {
+        const c = l.dataset.view === r;
+        (l.classList.toggle("is-active", c),
+          l.setAttribute("aria-selected", c),
+          c &&
+            ((s.style.left = `${l.offsetLeft}px`),
+            (s.style.width = `${l.offsetWidth}px`)));
+      }),
+      t(r),
+      i)
+    )
+      try {
+        localStorage.setItem(Or, r);
+      } catch {}
+  }
+  (e.querySelector(".view-switch").addEventListener("click", (r) => {
+    const i = r.target.closest("button");
+    i && a(i.dataset.view);
+  }),
+    a(Ed() === "sequence" ? "sequence" : "network", !1),
+    requestAnimationFrame(() => s.classList.add("is-ready")));
+  const n = () => {
+      const r = e.querySelector(".view-switch button.is-active");
+      ((s.style.left = `${r.offsetLeft}px`),
+        (s.style.width = `${r.offsetWidth}px`));
+    },
+    o = new ResizeObserver(n);
+  return (
+    e.querySelectorAll(".view-switch button").forEach((r) => o.observe(r)),
+    {
+      toggle: () =>
+        a(e.classList.contains("is-sequence") ? "network" : "sequence"),
+      view: () =>
+        e.classList.contains("is-sequence") ? "sequence" : "network",
+    }
+  );
+}
+const Io = (e, t) => b(e.labels?.[t]?.[0] ?? mc[t]),
+  Ad =
+    '<svg class="pill-lock" viewBox="0 0 12 14" width="10" height="12" aria-hidden="true"><path d="M3 6.5 V4.5 a3 3 0 0 1 6 0 V6.5" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="1.5" y="6.5" width="9" height="6.5" rx="1.3" fill="currentColor"/></svg>',
+  Nr = (e) =>
+    e
+      .map(([t, s]) => `<div><dt>${B(At(b(t)))}</dt><dd>${B(b(s))}</dd></div>`)
+      .join("");
+function xd() {
+  return `
+  <section class="panel overview">
+    <div class="panel-head bar">
+      <h2 class="panel-title sm"></h2>
+      <button class="more" type="button" data-t-label="More" aria-label="${b("More")}">${_e.dots}</button>
+      <button class="back-btn" type="button" hidden>${_e.back}<span ${j("OVERVIEW")}</span></button>
+    </div>
+
+    <div class="overview-stage">
+      <div class="overview-body" data-view="overview">
+        <div class="overview-name">
+          <h3></h3>
+          <span class="badge"><i></i><span ${j("ACTIVE")}</span></span>
+        </div>
+        <p class="overview-full"></p>
+        <p class="overview-desc"></p>
+        <dl class="facts overview-facts"></dl>
+      </div>
+
+      <div class="overview-body explain" data-view="step" hidden aria-live="polite">
+        <div class="explain-label"></div>
+        <h3 class="explain-title"></h3>
+        <p class="explain-sub"></p>
+        <p class="explain-text"></p>
+        <div class="explain-packet">
+          <div class="explain-packet-clip">
+            <div class="explain-packet-card">
+              <div class="explain-packet-inner">
+                <div class="explain-packet-head"><b></b><span></span></div>
+                <div class="explain-payload"></div>
+                <div class="explain-meta"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <dl class="facts explain-facts"></dl>
+      </div>
+    </div>
+  </section>`;
+}
+function $d(e, t) {
+  e.querySelector(".back-btn").addEventListener("click", t);
+}
+function Ld(e, t, s) {
+  const a = t.steps[e.activeStep],
+    n = bn(t),
+    o = e.event,
+    r =
+      e.started &&
+      !e.done &&
+      (o?.type === "packet" || o?.type === "stream") &&
+      o.step === e.activeStep,
+    i = r
+      ? n.indexOf(
+          o.type === "stream" ? o.packets[0] : n.find((l) => l.row === o.row),
+        ) + 1
+      : 0;
+  return {
+    lesson: t,
+    order: s,
+    view: e.started ? "step" : "overview",
+    title: b(
+      e.started
+        ? e.done
+          ? "LESSON SUMMARY"
+          : "STEP DETAILS"
+        : "PROTOCOL OVERVIEW",
+    ),
+    rank: e.started ? (e.done ? t.steps.length : e.activeStep) : -1,
+    content: e.done
+      ? { label: b("LESSON COMPLETE"), ...t.outro, done: !0 }
+      : {
+          label: b("STEP {n} OF {total}", {
+            n: e.activeStep + 1,
+            total: t.steps.length,
+          }),
+          title: a.title,
+          desc: a.desc,
+          text: a.detail,
+          facts: a.facts,
+        },
+    packet: r
+      ? {
+          number: i,
+          count: o.type === "stream" ? o.packets.length : 1,
+          total: n.length,
+          event: o,
+        }
+      : null,
+  };
+}
+function Pd(e, t) {
+  const s = e.querySelector('[data-view="overview"]');
+  ((s.querySelector("h3").textContent = t.name),
+    (s.querySelector(".overview-full").textContent = b(t.overview.full)),
+    (s.querySelector(".overview-desc").textContent = b(t.overview.description)),
+    (s.querySelector(".overview-facts").innerHTML = Nr(t.overview.facts)));
+}
+function Cd(e, t) {
+  const s = e.querySelector(".explain");
+  (s.classList.toggle("is-done", !!t.done),
+    (s.querySelector(".explain-label").textContent = t.label),
+    (s.querySelector(".explain-title").textContent = At(b(t.title))),
+    (s.querySelector(".explain-sub").textContent = b(t.desc)),
+    (s.querySelector(".explain-text").textContent = b(t.text)),
+    (s.querySelector(".explain-facts").innerHTML = Nr(t.facts ?? [])),
+    (s.scrollTop = 0));
+}
+function $a(e, t, s) {
+  if (!t) return;
+  const a = e.querySelector(".explain-packet"),
+    { event: n, number: o, count: r, total: i } = t;
+  if (
+    ((a.dataset.color = n.color),
+    (a.querySelector("b").innerHTML = (n.locked ? Ad : "") + B(b(n.label))),
+    (a.querySelector("span").textContent = At(
+      `${Io(s, n.from)} ${us() ? "←" : "→"} ${Io(s, n.to)}`,
+    )),
+    (a.querySelector(".explain-payload").textContent = n.payload.map((l) =>
+      b(l),
+    ).join(`
+`)),
+    n.type === "stream")
+  ) {
+    const l = n.packets.filter((y) => y.lost).length,
+      c = n.packets.map((y) => y.row.len),
+      h = c.every((y) => y === c[0])
+        ? `${r} × ${c[0]}`
+        : c.every((y) => y.endsWith(" B"))
+          ? `${c.map((y) => y.slice(0, -2)).join(" + ")} B`
+          : c.join(" + "),
+      d = l
+        ? ` · ${b(l === 1 ? "1 LOST" : "{n} LOST", { n: l })}`
+        : n.locked
+          ? ` · ${b("ENCRYPTED")}`
+          : "";
+    a.querySelector(".explain-meta").textContent =
+      `${b("PACKETS {from}–{to} OF {total}", { from: o, to: o + r - 1, total: i })} · ${ds(h)}${d}`;
+  } else {
+    const l = n.lost
+      ? ` · ${b("LOST ON THE WAY")}`
+      : n.locked
+        ? ` · ${b("ENCRYPTED")}`
+        : "";
+    a.querySelector(".explain-meta").textContent =
+      `${b("PACKET {n} OF {total}", { n: o, total: i })} · ${ds(n.row.proto)} · ${ds(n.row.len)}${l}`;
+  }
+}
+function qr(e, t) {
+  const s = e.querySelector(".explain-packet"),
+    a = s.offsetHeight;
+  (s.getAnimations().forEach((o) => o.cancel()), t());
+  const n = s.offsetHeight;
+  a !== n &&
+    !ge() &&
+    s.animate([{ height: `${a}px` }, { height: `${n}px` }], {
+      duration: 420,
+      easing: Dt,
+    });
+}
+const Rd = (e, t) => t.packet && qr(e, () => $a(e, t.packet, t.lesson));
+function Js(e, t) {
+  (Pd(e, t.lesson),
+    (e.querySelector('[data-view="overview"]').hidden = t.view !== "overview"),
+    (e.querySelector('[data-view="step"]').hidden = t.view !== "step"),
+    Cd(e, t.content),
+    $a(e, t.packet, t.lesson),
+    e.querySelector(".explain-packet").classList.toggle("is-open", !!t.packet));
+}
+function Id(e, t) {
+  const s = e.querySelector(".back-btn"),
+    a = e.querySelector(".more");
+  s.hidden === t &&
+    ((s.hidden = !t),
+    (a.hidden = t),
+    ge() ||
+      (t ? s : a).animate(
+        [
+          { transform: `translateX(${us() ? -14 : 14}px)`, opacity: 0 },
+          { transform: "none", opacity: 1 },
+        ],
+        { duration: 320, easing: Dt },
+      ));
+}
+function Od(e) {
+  e._shown = null;
+}
+function Nd(e, t, s, a = 0) {
+  const n = Ld(t, s, a),
+    o = e._shown;
+  e._latest = n;
+  const r = () => e._latest;
+  if (
+    (Tt(
+      e.querySelector(".panel-title"),
+      n.title,
+      !o || n.rank >= o.rank ? 1 : -1,
+    ),
+    Id(e, n.view === "step"),
+    !o)
+  )
+    Js(e, n);
+  else if (n.lesson !== o.lesson)
+    rs(
+      e.querySelector(".overview-stage"),
+      () => Js(e, r()),
+      n.order > o.order ? 1 : -1,
+      32,
+    );
+  else if (n.view !== o.view)
+    rs(
+      e.querySelector(".overview-stage"),
+      () => Js(e, r()),
+      n.view === "step" ? 1 : -1,
+      32,
+    );
+  else if (n.view === "step" && n.rank !== o.rank)
+    rs(e.querySelector(".explain"), () => Js(e, r()), n.rank > o.rank ? 1 : -1);
+  else if (n.view === "step" && n.packet?.number !== o.packet?.number) {
+    const i = e.querySelector(".explain-packet"),
+      l =
+        ["client", "dns"].includes(n.packet?.event.to) &&
+        n.packet?.event.from !== "client";
+    n.packet && o.packet
+      ? rs(
+          i.querySelector(".explain-packet-inner"),
+          () => Rd(e, r()),
+          l ? 1 : -1,
+          18,
+        )
+      : qr(e, () => {
+          (n.packet && $a(e, n.packet, n.lesson),
+            i.classList.toggle("is-open", !!n.packet));
+        });
+  }
+  e._shown = n;
+}
+const qd = (e) => (gr(b(e)) ? ' dir="ltr" class="is-ltr"' : "");
+function Md(e) {
+  return bn(e)
+    .map(
+      ({ color: t, row: s, lost: a }, n) => `
+      <tr data-packet="${n}" class="${a ? "is-lost" : ""}" tabindex="0" hidden>
+        <td><span class="step-badge ${t}">${n + 1}</span></td>
+        <td><bdi dir="ltr">${B(s.time)}</bdi></td>
+        <td><bdi dir="ltr">${B(s.src)}</bdi></td>
+        <td><bdi dir="ltr">${B(s.dst)}</bdi></td>
+        <td><bdi dir="ltr">${B(s.proto)}</bdi></td>
+        <td title="${B(b(s.info))}"${qd(s.info)}><span ${j(s.info)}</span>${a ? `<span class="lost-chip" ${j("LOST")}</span>` : ""}</td>
+        <td><bdi dir="ltr">${B(s.len)}</bdi></td>
+      </tr>`,
+    )
+    .join("");
+}
+function Dd() {
+  return `
+  <section class="panel packets">
+    <div class="panel-head bar">
+      <h2 class="panel-title sm" ${j("PACKET FLOW")}</h2>
+      <div class="packet-legend" data-t-label="Colour key" aria-label="${b("Colour key")}"></div>
+      <div class="packet-actions">
+        <button class="btn speed" type="button" data-action="speed" data-t-title="Playback speed" title="${b("Playback speed")}"><span class="speed-label">1×</span></button>
+        <button class="btn icon" type="button" data-action="prev" data-t-title="Previous step (←)" title="${b("Previous step (←)")}" data-t-label="Previous step" aria-label="${b("Previous step")}">
+          <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M7.8 1.8 L3.6 6 L7.8 10.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="btn primary toggle" type="button" data-action="toggle" data-t-title="Play / pause (Space)" title="${b("Play / pause (Space)")}">
+          <span class="toggle-icon">
+            <svg class="icon-playpause" viewBox="0 0 12 14" width="12" height="14" aria-hidden="true"><path class="pp-a"/><path class="pp-b"/></svg>
+            ${_e.reset.replace("<svg", '<svg class="icon-replay"')}
+          </span>
+          <span class="toggle-label"></span>
+        </button>
+        <button class="btn" type="button" data-action="step" data-t-title="One packet at a time" title="${b("One packet at a time")}"><span ${j("STEP")}</span></button>
+        <button class="btn" type="button" data-action="reset" data-t-title="Back to the overview (Esc)" title="${b("Back to the overview (Esc)")}" data-t-label="Reset" aria-label="${b("Reset")}">${_e.reset}<span class="btn-text" ${j("RESET")}</span></button>
+      </div>
+    </div>
+    <div class="packet-scroll">
+      <table class="packet-table">
+        <colgroup>
+          <col style="width:75px"><col style="width:125px"><col style="width:161px"><col style="width:165px">
+          <col style="width:129px"><col><col style="width:86px">
+        </colgroup>
+        <thead>
+          <tr>${["NO.", "TIME", "SOURCE", "DESTINATION", "PROTOCOL", "INFO", "SIZE"].map((e) => `<th ${j(e)}</th>`).join("")}</tr>
+        </thead>
+        <tbody class="packet-empty-body"><tr class="packet-empty" hidden><td colspan="7" ${j("No packets on the wire yet.")}</td></tr></tbody>
+        <tbody class="packet-rows"></tbody>
+      </table>
+    </div>
+  </section>`;
+}
+function Hd(e, t) {
+  const s = e.querySelector(".toggle");
+  (new ResizeObserver(() => _r(s)).observe(s),
+    e.addEventListener("click", (a) => {
+      const n = a.target.closest("[data-action]");
+      n && !n.disabled && t[n.dataset.action]();
+      const o = a.target.closest("tr[data-packet]");
+      o && !o.hidden && t.inspect(Number(o.dataset.packet));
+    }),
+    e.addEventListener("keydown", (a) => {
+      const n = a.key === "Enter" && a.target.closest("tr[data-packet]");
+      n && !n.hidden && t.inspect(Number(n.dataset.packet));
+    }));
+}
+const Mr = (e) => (e.hidden ? 0 : Number(getComputedStyle(e).opacity));
+function Oo(e, t = 0) {
+  const s = Mr(e);
+  ((e.dataset.shown = "1"),
+    e.getAnimations().forEach((a) => a.cancel()),
+    (e.hidden = !1),
+    !(ge() || s === 1) &&
+      e.animate(
+        [
+          { opacity: s, transform: `translateY(${10 * (1 - s)}px)` },
+          { opacity: 1, transform: "none" },
+        ],
+        { duration: 360, delay: s > 0 ? 0 : t, easing: Dt, fill: "backwards" },
+      ));
+}
+function na(e) {
+  const t = Mr(e),
+    s = e.hidden ? "none" : getComputedStyle(e).transform;
+  if (
+    ((e.dataset.shown = "0"),
+    e.getAnimations().forEach((n) => n.cancel()),
+    ge() || t === 0)
+  )
+    return (e.hidden = !0);
+  const a = e.animate(
+    [
+      { opacity: t, transform: s },
+      { opacity: 0, transform: s },
+    ],
+    { duration: 180 * t, fill: "forwards" },
+  );
+  a.onfinish = () => {
+    (e.dataset.shown === "0" && (e.hidden = !0), a.cancel());
+  };
+}
+const aa = (e) =>
+  (e.legend ?? [])
+    .map(([t, s]) =>
+      t
+        ? `<span class="legend-item"><i class="legend-dot step-badge ${t}"></i>${B(b(s))}</span>`
+        : `<span class="legend-note">${B(b(s))}</span>`,
+    )
+    .join("");
+function _d(e, t) {
+  const s = e.querySelector(".packet-rows"),
+    a = e.querySelector(".packet-legend"),
+    n = !e.dataset.lesson;
+  ((e.dataset.lesson = t.id),
+    n ? (a.innerHTML = aa(t)) : rs(a, () => (a.innerHTML = aa(t)), 1, 16));
+  const o = [...s.children].filter((i) => !i.hidden),
+    r = () => {
+      e.dataset.lesson === t.id &&
+        ((s.innerHTML = Md(t)),
+        (s.dataset.lesson = t.id),
+        (e.querySelector(".packet-scroll").scrollTop = 0),
+        e._latest && Dr(e, e._latest));
+    };
+  if (!o.length || ge()) return r();
+  (o.forEach(na), setTimeout(r, 200));
+}
+function Dr(e, t) {
+  if (e.querySelector(".packet-rows").dataset.lesson !== e.dataset.lesson)
+    return;
+  const s = [...e.querySelectorAll("tr[data-packet]")],
+    a = s.map((l, c) => !t.started || t.packets[c] !== "future"),
+    n = s.filter((l, c) => a[c] && l.dataset.shown !== "1"),
+    o = s.filter((l, c) => !a[c] && l.dataset.shown === "1");
+  if (
+    (o.forEach(na),
+    n.forEach((l, c) =>
+      Oo(l, (o.length ? 200 : 0) + (n.length > 1 ? c * 35 : 0)),
+    ),
+    s.forEach((l, c) =>
+      l.classList.toggle("is-current", t.started && t.packets[c] === "current"),
+    ),
+    t.started && n.length === 1)
+  ) {
+    const l = e.querySelector(".packet-scroll");
+    requestAnimationFrame(() =>
+      l.scrollTo({ top: l.scrollHeight, behavior: "smooth" }),
+    );
+  }
+  !t.started &&
+    n.length &&
+    e.querySelector(".packet-scroll").scrollTo({ top: 0, behavior: "smooth" });
+  const r = e.querySelector(".packet-empty"),
+    i = t.started && !a.some(Boolean);
+  (i && r.dataset.shown !== "1" && Oo(r, o.length ? 220 : 0),
+    !i && r.dataset.shown === "1" && na(r));
+}
+function Fd(e, t, s) {
+  ((e._latest = t), e.dataset.lesson !== s.id ? _d(e, s) : Dr(e, t));
+  const a = e.querySelector(".toggle");
+  (a.classList.toggle("is-playing", t.playing),
+    a.classList.toggle("is-done", t.done && !t.playing),
+    Tt(
+      a.querySelector(".toggle-label"),
+      b(t.playing ? "PAUSE" : t.done ? "REPLAY" : "PLAY"),
+    ),
+    (e.querySelector('[data-action="step"]').disabled = t.done),
+    (e.querySelector('[data-action="prev"]').disabled = !t.started));
+}
+function Kd(e, t) {
+  ((e.querySelector(".packet-legend").innerHTML = aa(t)),
+    Hr(e),
+    e.querySelectorAll("tr[data-packet] td[title]").forEach((s) => {
+      const a = b(s.querySelector("[data-t]").dataset.t);
+      s.title = a;
+      const n = gr(a);
+      (s.classList.toggle("is-ltr", n),
+        n ? (s.dir = "ltr") : s.removeAttribute("dir"));
+    }));
+}
+function Hr(e) {
+  const t = e.querySelector(".toggle-label"),
+    s = t.textContent;
+  t.style.minWidth = "";
+  const a = Math.max(
+    ...["PLAY", "PAUSE", "REPLAY"].map(
+      (r) => ((t.textContent = b(r)), t.scrollWidth),
+    ),
+  );
+  ((t.textContent = s), (t.style.minWidth = `${a}px`));
+  const n = e.querySelector(".toggle"),
+    o = getComputedStyle(n);
+  ((n._need =
+    a +
+    16 +
+    parseFloat(o.columnGap || 12) +
+    parseFloat(o.paddingLeft) +
+    parseFloat(o.paddingRight) +
+    2),
+    _r(n));
+}
+const _r = (e) =>
+  e.classList.toggle(
+    "is-iconic",
+    getComputedStyle(e).containerType === "inline-size" &&
+      e.clientWidth < (e._need ?? 0),
+  );
+function Ud(e, t) {
+  Tt(e.querySelector(".speed-label"), `${t}×`);
+}
+const Bd = "http://www.w3.org/2000/svg",
+  No = 0.21,
+  Gd = 140,
+  Yd = 55,
+  jn = 1100,
+  en = 14,
+  Wd = 470,
+  qo = ["client"],
+  Mo = [10, 20, 30],
+  jd = 1500,
+  Vd = 700,
+  Xd = 1.8,
+  Qd = [140, 58],
+  Do = [60, 334],
+  zd =
+    /[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua960-\ua97f\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6]/,
+  Vn = (e) =>
+    [...e].reduce((t, s) => t + (zd.test(s) ? 2 : Zd.test(s) ? 0 : 1), 0),
+  Zd = /[\u200e\u200f\u2066-\u2069]/,
+  Jd = /[\u0590-\u08ff\ufb1d-\ufdff\ufe70-\ufefc]/,
+  Xn = (e, t, s = 0) => Math.max(t, e.getComputedTextLength() + s),
+  ep = (e) => (e < 0.5 ? 4 * e * e * e : 1 - (-2 * e + 2) ** 3 / 2),
+  tn = (e) => 1 + 2.2 * (e - 1) ** 3 + 1.2 * (e - 1) ** 2,
+  Ho = (e) => 1 - (1 - e) ** 3,
+  vs = (e) => e * e * e;
+function he(e, t, s) {
+  const a = document.createElementNS(Bd, e);
+  for (const [n, o] of Object.entries(t)) a.setAttribute(n, o);
+  return (s?.appendChild(a), a);
+}
+const sn = ([e, t, s, a], n) => ({ x: e + (s - e) * n, y: t + (a - t) * n }),
+  _o = ([e, t, s, a]) => Math.hypot(s - e, a - t);
+function tp(e) {
+  const t = Object.fromEntries(
+      [...e.querySelectorAll(".lane")].map((p) => [p.dataset.lane, p]),
+    ),
+    s = Object.fromEntries(
+      [...e.querySelectorAll(".node")].map((p) => [p.dataset.node, p]),
+    ),
+    a = e.querySelector(".packet-layer"),
+    n = e.querySelector(".pulse-layer"),
+    o = e.querySelector(".note-layer"),
+    r = e.querySelector(".url-bar"),
+    i = r.querySelector(".url-box"),
+    l = r.querySelector(".url-text"),
+    c = r.querySelector(".url-caret"),
+    h = r.querySelector(".url-check"),
+    d = [...e.querySelectorAll(".screen-content > *")],
+    y = new Set(),
+    w = new Set();
+  let k = Object.keys(s),
+    g = !0,
+    T = !1,
+    v = "full",
+    I = e.getAttribute("viewBox").split(" ").map(Number);
+  const q = [...e.querySelectorAll(".node-label")],
+    re = e.querySelector(".url-holder");
+  let C = 1,
+    Z = 1;
+  function R(p) {
+    if ((p.removeAttribute("transform"), C === 1)) return;
+    const m = p.getBBox(),
+      [S, $] = p.dataset.origin.split("-"),
+      L =
+        S === "left" ? m.x : S === "right" ? m.x + m.width : m.x + m.width / 2,
+      E = $ === "top" ? m.y : m.y + m.height;
+    p.setAttribute(
+      "transform",
+      `translate(${L.toFixed(1)} ${E.toFixed(1)}) scale(${C.toFixed(3)}) translate(${(-L).toFixed(1)} ${(-E).toFixed(1)})`,
+    );
+  }
+  function x() {
+    const p = e.getBoundingClientRect().width,
+      m = p ? Math.min(Xd, Math.max(1, Vd / p)) : 1;
+    if (Math.abs(m - C) < 0.01) return;
+    ((C = m),
+      (Z = 1 + (m - 1) * 0.6),
+      e.classList.toggle("is-scaled", m > 1),
+      q.forEach(R));
+    const [S, $] = Qd;
+    re.setAttribute(
+      "transform",
+      `translate(${Do[0] + S} ${Do[1] + $}) scale(${Z.toFixed(3)}) translate(${-S} ${-$})`,
+    );
+  }
+  function H(p) {
+    const m = p.getBBox(),
+      S = p.transform?.baseVal.consolidate()?.matrix;
+    return S
+      ? {
+          x: S.a * m.x + S.e,
+          y: S.d * m.y + S.f,
+          width: S.a * m.width,
+          height: S.d * m.height,
+        }
+      : m;
+  }
+  function we(p, m) {
+    if (m) return s[p].getBBox();
+    const S = [...s[p].children]
+        .filter((E) => !E.classList.contains("url-holder"))
+        .map(H),
+      $ = Math.min(...S.map((E) => E.x)),
+      L = Math.min(...S.map((E) => E.y));
+    return {
+      x: $,
+      y: L,
+      width: Math.max(...S.map((E) => E.x + E.width)) - $,
+      height: Math.max(...S.map((E) => E.y + E.height)) - L,
+    };
+  }
+  function ce(p) {
+    ((v = p), r.classList.toggle("is-away", !qo.includes(p)));
+  }
+  function P(p) {
+    const S = go[p]
+        .filter((F) => k.includes(F))
+        .map((F) => we(F, qo.includes(p))),
+      $ = Math.min(...S.map((F) => F.x)) - en,
+      L = Math.min(...S.map((F) => F.y)) - en,
+      E = Math.max(...S.map((F) => F.x + F.width)) + en - $,
+      M = Math.max(...S.map((F) => F.y + F.height)) + en - L,
+      { width: X, height: U } = e.getBoundingClientRect(),
+      Y = Math.min(X / E, U / M, X / Wd);
+    return [$ + E / 2 - X / Y / 2, L + M / 2 - U / Y / 2, X / Y, U / Y];
+  }
+  function A(p) {
+    ((I = p), e.setAttribute("viewBox", p.map((m) => m.toFixed(2)).join(" ")));
+  }
+  let _ = { cancelled: !1 };
+  async function J(p, m, S) {
+    _.cancelled = !0;
+    const $ = (_ = { cancelled: !1 }),
+      L = I;
+    await xe(
+      m,
+      {
+        get cancelled() {
+          return S.cancelled || $.cancelled;
+        },
+      },
+      (E) => {
+        const M = ep(E);
+        A(L.map((X, U) => X + (p[U] - X) * M));
+      },
+    );
+  }
+  function Re(p, m) {
+    return (ce(p), J(P(p), jn, m));
+  }
+  function V() {
+    ((_.cancelled = !0), x(), A(P(v)));
+  }
+  new ResizeObserver(V).observe(e);
+  function ee(p, m) {
+    const S = s[p];
+    (m ? y.add(p) : y.delete(p),
+      (S.style.opacity = m ? 1 : 0),
+      S.removeAttribute("transform"));
+  }
+  async function Ke(p, m, { delay: S = 0, ring: $ = !0 } = {}) {
+    const L = s[p];
+    (y.add(p),
+      (L.style.opacity = 0),
+      S && (await se(S, m)),
+      await xe(650, m, (E) => {
+        (L.setAttribute(
+          "transform",
+          `translate(0 ${(-46 * (1 - tn(E))).toFixed(2)})`,
+        ),
+          (L.style.opacity = Math.min(1, E * 2.4)));
+      }),
+      !m.cancelled && (L.removeAttribute("transform"), $ && An(p, "navy", m)));
+  }
+  async function Te(p, m, S = 0) {
+    const $ = s[p];
+    (y.delete(p),
+      ($.style.opacity = 1),
+      S && (await se(S, m)),
+      await xe(380, m, (L) => {
+        ($.setAttribute(
+          "transform",
+          `translate(0 ${(-30 * vs(L)).toFixed(2)})`,
+        ),
+          ($.style.opacity = 1 - L));
+      }),
+      !m.cancelled && ($.removeAttribute("transform"), ($.style.opacity = 0)));
+  }
+  function et(p, m) {
+    const S = s[p];
+    xe(340, m, ($) => {
+      $ < 1
+        ? S.setAttribute(
+            "transform",
+            `translate(0 ${(-5 * Math.sin(Math.PI * $)).toFixed(2)})`,
+          )
+        : S.removeAttribute("transform");
+    });
+  }
+  function Ms(p, m) {
+    const [S, $] = As[p],
+      L = sn(As[p], m);
+    (t[p].setAttribute("d", `M${S},${$} L${L.x.toFixed(1)},${L.y.toFixed(1)}`),
+      (t[p].style.visibility = m > 0.01 ? "" : "hidden"));
+  }
+  async function Ra(p, m, S, $ = 0) {
+    (Ms(p, m ? 0 : 1),
+      $ && (await se($, S)),
+      await xe(m ? 520 : 300, S, (L) => Ms(p, m ? Ho(L) : 1 - vs(L))));
+  }
+  function ms(p, m = 0) {
+    for (const S of Object.keys(t)) {
+      const [$, L] = S.split(">"),
+        E = y.has($) && y.has(L),
+        M = E !== w.has(S);
+      (E ? w.add(S) : w.delete(S), p ? M && Ra(S, E, p, m) : Ms(S, E ? 1 : 0));
+    }
+  }
+  function Ds(p) {
+    ((g = p),
+      d.forEach((m) => {
+        ((m.style.opacity = p ? 1 : 0),
+          (m.style.strokeDasharray = m.tagName === "polyline" ? 1 : ""),
+          (m.style.strokeDashoffset =
+            m.tagName === "polyline" ? (p ? 0 : 1) : ""));
+      }));
+  }
+  async function En(p, m, S = 0) {
+    (Ds(!p), (g = p), S && (await se(S, m)));
+    const $ = p ? d : [...d].reverse();
+    for (const L of $) {
+      if (m.cancelled) return;
+      const E = L.tagName === "polyline";
+      ((L.style.opacity = 1),
+        await xe(p ? 240 : 110, m, (M) => {
+          const X = p ? Ho(M) : 1 - M;
+          E ? (L.style.strokeDashoffset = 1 - X) : (L.style.opacity = X);
+        }),
+        p || (L.style.opacity = 0));
+    }
+  }
+  async function Xr(p, m, S) {
+    const $ = Re(m, S);
+    await se(jn * 0.45, S);
+    for (const [L, E] of p.entries()) {
+      if (S.cancelled) return;
+      const M = Ke(E, S);
+      L === p.length - 1 ? await M : await se(200, S);
+    }
+    S.cancelled || (ms(S), await $, await se(300, S));
+  }
+  async function Qr({ nodes: p, frame: m }, S) {
+    const $ = Object.keys(s).filter((L) => y.has(L) && !p.includes(L));
+    ($.forEach((L) => y.delete(L)),
+      ms(S),
+      En(!1, S),
+      $.forEach((L, E) => Te(L, S, 120 + E * 70)),
+      await se(250, S),
+      await Re(m, S),
+      await se(250, S));
+  }
+  async function zr({ at: p, text: m, tone: S = "navy" }, $) {
+    const {
+        x: L,
+        y: E,
+        side: M,
+      } = Tc[p] ?? { x: Fn[p][0], y: Fn[p][1], side: "top" },
+      X = b(m),
+      U = he(
+        "g",
+        { transform: `translate(${L} ${E}) scale(${Z.toFixed(3)})` },
+        o,
+      ),
+      Y = he("g", { class: `note ${S}` }, U),
+      F = he("text", { class: "note-text", "dominant-baseline": "central" }, Y);
+    F.textContent = X;
+    const te = Xn(F, Vn(X) * 7.4, 3) + 30,
+      [tt, pe] = M === "left" ? [-te - 9, -13] : [-te / 2, -38],
+      Ft =
+        M === "left"
+          ? `M${tt},${pe} h${te} v8 l8,5 l-8,5 v8 h${-te} z`
+          : `M${tt},${pe} h${te} v26 h${-te / 2 + 7} l-7,8 l-7,-8 h${-te / 2 + 7} z`;
+    (F.setAttribute("x", tt + 23),
+      F.setAttribute("y", pe + 13),
+      Y.insertBefore(
+        he("circle", { class: "note-dot", cx: tt + 13, cy: pe + 13, r: 3.5 }),
+        F,
+      ),
+      Y.insertBefore(he("path", { class: "note-box", d: Ft }), Y.firstChild),
+      et(p, $),
+      await xe(320, $, (Se) =>
+        Y.setAttribute("transform", `scale(${tn(Se).toFixed(3)})`),
+      ),
+      await se(jd, $),
+      await xe(200, $, (Se) => {
+        (Y.setAttribute("transform", `scale(${(1 - vs(Se) * 0.3).toFixed(3)})`),
+          (Y.style.opacity = 1 - Se));
+      }),
+      U.remove());
+  }
+  function kn(p, m) {
+    const S = t[p];
+    (S.classList.toggle("is-active", !!m),
+      (S.style.stroke = m ? yt[m] : ""),
+      S.setAttribute("marker-end", `url(#head-${m || "idle"})`));
+  }
+  const Qt = {};
+  function Zr(p, m) {
+    ((Qt[p] = (Qt[p] ?? 0) + 1), kn(p, m));
+  }
+  function Ia(p) {
+    ((Qt[p] = Math.max(0, (Qt[p] ?? 0) - 1)), Qt[p] || kn(p));
+  }
+  async function An(p, m, S) {
+    const [$, L] = Fn[p],
+      E = he(
+        "circle",
+        { cx: $, cy: L, fill: "none", stroke: yt[m], "stroke-width": 2 },
+        n,
+      );
+    (await xe(700, S, (M) => {
+      (E.setAttribute("r", 14 + M * 46),
+        E.setAttribute("opacity", 0.6 * (1 - M)));
+    }),
+      E.remove());
+  }
+  function Jr(p, m, S = [], $ = !1) {
+    const L = b(m),
+      E = S.map((G) => b(G)),
+      M = Mo.map((G, Ee) =>
+        he(
+          "circle",
+          { r: 3.6 - Ee, fill: yt[p], opacity: 0.45 - Ee * 0.12 },
+          a,
+        ),
+      ),
+      X = he("g", { class: "packet" }, a);
+    (he("circle", { r: 13, fill: yt[p], opacity: 0.18 }, X),
+      he(
+        "circle",
+        { r: 6, fill: yt[p], stroke: "var(--panel)", "stroke-width": 2 },
+        X,
+      ));
+    const U = 15,
+      Y = $ ? 14 : 0,
+      F = E.length ? E.length * U + 9 : 0,
+      te = he(
+        "g",
+        {
+          class: `packet-tag ${p}`,
+          transform: `translate(0 -16) scale(${Z.toFixed(3)})`,
+        },
+        X,
+      ),
+      tt = E.map((G, Ee) => {
+        const st = he(
+          "text",
+          {
+            y: -F + 6 + Ee * U,
+            "dominant-baseline": "hanging",
+            class: "packet-field",
+          },
+          te,
+        );
+        return ((st.textContent = G), st);
+      }),
+      pe = he(
+        "text",
+        {
+          "text-anchor": "middle",
+          "dominant-baseline": "central",
+          x: Y / 2,
+          y: -F - 10.5,
+          class: "packet-label",
+        },
+        te,
+      );
+    pe.textContent = L;
+    const Ft = Xn(pe, Vn(L) * 7.6),
+      Se = Math.max(
+        Ft + 16 + Y,
+        ...tt.map((G, Ee) => Xn(G, Vn(E[Ee]) * 6.2) + 16),
+      );
+    if (
+      (tt.forEach((G, Ee) => {
+        const st = Jd.test(E[Ee]);
+        (G.setAttribute("x", st ? Se / 2 - 8 : -Se / 2 + 8),
+          st && G.setAttribute("text-anchor", "end"));
+      }),
+      te.insertBefore(
+        he("rect", {
+          x: -Se / 2,
+          y: -F - 22,
+          width: Se,
+          height: 22,
+          rx: 3,
+          fill: yt[p],
+        }),
+        pe,
+      ),
+      F &&
+        te.insertBefore(
+          he("rect", {
+            x: -Se / 2,
+            y: -F - 4,
+            width: Se,
+            height: F + 4,
+            rx: 3,
+            class: "packet-body",
+            stroke: yt[p],
+          }),
+          te.firstChild,
+        ),
+      $)
+    ) {
+      const G = -Ft / 2 - 4;
+      he(
+        "path",
+        {
+          class: "packet-lock",
+          d: `M${G - 6},${-F - 10} v-2.4 a3,3 0 0 1 6,0 v2.4 M${G - 7.5},${-F - 10} h9 v6.5 h-9 z`,
+        },
+        te,
+      );
+    }
+    return { g: X, trail: M };
+  }
+  const Hs = (p, m, S = 1) =>
+    p.setAttribute(
+      "transform",
+      `translate(${m.x.toFixed(1)} ${m.y.toFixed(1)}) scale(${S.toFixed(3)})`,
+    );
+  async function Oa(
+    {
+      from: p,
+      to: m,
+      color: S,
+      label: $,
+      payload: L,
+      locked: E,
+      lost: M,
+      quick: X,
+    },
+    U,
+  ) {
+    const Y = fc[`${p}>${m}`],
+      F = X ? No * 2.4 : No,
+      te = M ? Y.findIndex((G) => G.includes("internet")) : -1,
+      tt = Y.filter((G, Ee) => te < 0 || Ee <= te);
+    tt.forEach((G) => Zr(G, S));
+    const pe = Jr(S, $, L, E),
+      Ft = sn(As[Y[0]], 0);
+    await xe(X ? 140 : 220, U, (G) => Hs(pe.g, Ft, tn(G)));
+    let Se = Ft;
+    for (const [G, Ee] of Y.entries()) {
+      if (U.cancelled) return;
+      const st = As[Ee],
+        xn = G === te ? 0.55 : 1;
+      if (
+        (await xe((_o(st) * xn) / F, U, (Ha) => {
+          ((Se = sn(st, Ha * xn)),
+            Hs(pe.g, Se),
+            pe.trail.forEach((_a, ai) => {
+              const Fa = sn(st, Math.max(0, Ha * xn - Mo[ai] / _o(st)));
+              (_a.setAttribute("cx", Fa.x), _a.setAttribute("cy", Fa.y));
+            }));
+        }),
+        U.cancelled)
+      )
+        return;
+      if (G === te) return ti(pe, Se, tt, U);
+      (et(Ee.split(">")[1], U), G < Y.length - 1 && (await se(X ? 40 : Gd, U)));
+    }
+    (An(m, S, U),
+      await xe(180, U, (G) => {
+        (Hs(pe.g, Se, 1 - vs(G)),
+          pe.trail.forEach((Ee) => Ee.setAttribute("opacity", 0.3 * (1 - G))));
+      }),
+      pe.g.remove(),
+      pe.trail.forEach((G) => G.remove()),
+      Y.forEach(Ia),
+      await se(150, U));
+  }
+  async function ei({ packets: p, spacing: m = 480 }, S) {
+    const $ = [];
+    for (const [L, E] of p.entries()) {
+      if (S.cancelled) return;
+      ($.push(Oa(E, S)), L < p.length - 1 && (await se(m, S)));
+    }
+    await Promise.all($);
+  }
+  async function ti(p, m, S, $) {
+    const L = he(
+      "path",
+      {
+        class: "drop-cross",
+        d: "M-6,-6 L6,6 M6,-6 L-6,6",
+        transform: `translate(${m.x} ${m.y})`,
+      },
+      a,
+    );
+    (await xe(520, $, (E) => {
+      (Hs(p.g, { x: m.x, y: m.y + 26 * vs(E) }, 1 - 0.4 * E),
+        (p.g.style.opacity = 1 - E),
+        p.trail.forEach((M) => M.setAttribute("opacity", 0.3 * (1 - E))),
+        L.setAttribute(
+          "transform",
+          `translate(${m.x} ${m.y}) scale(${tn(Math.min(1, E * 2)).toFixed(3)})`,
+        ));
+    }),
+      p.g.remove(),
+      p.trail.forEach((E) => E.remove()),
+      S.forEach(Ia),
+      await se(500, $),
+      await xe(250, $, (E) => (L.style.opacity = 1 - E)),
+      L.remove());
+  }
+  let Na = {};
+  function qa(p) {
+    Na = p;
+    for (const [m, S] of Object.entries(s)) {
+      const [$, L] = p[m] ?? Ge[m],
+        E = [b($), L],
+        M = [S.querySelector(".node-name"), S.querySelector(".node-ip")],
+        X = S.querySelector(".node-label");
+      M.forEach((U, Y) => {
+        if (!U || U.textContent === E[Y]) return;
+        if (!(y.has(m) && S.style.opacity !== "0"))
+          return ((U.textContent = E[Y]), R(X));
+        U.animate([{ opacity: 1 }, { opacity: 0 }], {
+          duration: 140,
+          fill: "forwards",
+        }).onfinish = (te) => {
+          ((U.textContent = E[Y]),
+            R(X),
+            te.target.cancel(),
+            U.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220 }));
+        };
+      });
+    }
+  }
+  function Ma(p, m) {
+    (r.classList.toggle("is-secure", !!m), (l.textContent = p));
+    const S = l.getComputedTextLength();
+    (i.setAttribute("width", (S + 58).toFixed(1)),
+      h.setAttribute("transform", `translate(${(S + 38).toFixed(1)} 0)`));
+  }
+  async function si(p, m, S) {
+    (Ma(p, m),
+      (l.textContent = ""),
+      c.setAttribute("x", 29),
+      r.classList.add("is-visible", "is-typing"),
+      await se(400, S));
+    for (let $ = 1; $ <= p.length; $++) {
+      if (S.cancelled) return;
+      ((l.textContent = p.slice(0, $)),
+        c.setAttribute("x", 30 + l.getComputedTextLength()),
+        await se(Yd, S));
+    }
+    S.cancelled ||
+      (r.classList.remove("is-typing"), et("client", S), await se(500, S));
+  }
+  async function ni(p) {
+    (await se(200, p),
+      await En(!0, p),
+      !p.cancelled &&
+        (r.classList.add("is-loaded"),
+        An("client", "green", p),
+        await se(500, p)));
+  }
+  function Da() {
+    (r.classList.remove("is-visible", "is-typing", "is-loaded"),
+      (l.textContent = ""));
+  }
+  return (
+    Object.keys(t).forEach((p) => Ms(p, 0)),
+    {
+      run(p, m) {
+        return p.type === "packet"
+          ? Oa(p, m)
+          : p.type === "stream"
+            ? ei(p, m)
+            : p.type === "type-url"
+              ? si(p.text, p.secure, m)
+              : p.type === "focus"
+                ? Qr(p, m)
+                : p.type === "show"
+                  ? Xr(p.nodes, p.frame, m)
+                  : p.type === "camera"
+                    ? Re(p.frame, m)
+                    : p.type === "render"
+                      ? ni(m)
+                      : p.type === "note"
+                        ? zr(p, m)
+                        : Promise.resolve();
+      },
+      retext() {
+        qa(Na);
+      },
+      overview(p, m = {}) {
+        ((k = p),
+          qa(m),
+          Object.keys(s).forEach((S) => ee(S, k.includes(S))),
+          ms(),
+          Da(),
+          Ds(!0),
+          ce("full"),
+          V());
+      },
+      apply(p) {
+        (p.type === "focus" &&
+          (Object.keys(s).forEach((m) => ee(m, p.nodes.includes(m))),
+          ms(),
+          Da(),
+          Ds(!1),
+          ce(p.frame),
+          V()),
+          p.type === "type-url" &&
+            (Ma(p.text, p.secure), r.classList.add("is-visible")),
+          p.type === "show" && (p.nodes.forEach((m) => ee(m, !0)), ms()),
+          (p.type === "show" || p.type === "camera") && (ce(p.frame), V()),
+          p.type === "render" && (Ds(!0), r.classList.add("is-loaded")));
+      },
+      snapshot() {
+        return {
+          view: I,
+          visible: new Set(y),
+          lanes: new Set(w),
+          page: g,
+          fresh: !T,
+        };
+      },
+      morph(p, m) {
+        ((T = !0), e.classList.remove("is-booting"));
+        const S = go.full.filter((E) => y.has(E) && !p.visible.has(E)),
+          $ = [...p.visible].filter((E) => !y.has(E));
+        if (!p.fresh) {
+          const E = I;
+          (A(p.view), J(E, jn * 0.8, m));
+        }
+        ($.forEach((E, M) => Te(E, m, M * 60)),
+          S.forEach((E, M) =>
+            Ke(E, m, { delay: (p.fresh ? 150 : 250) + M * 110, ring: !1 }),
+          ));
+        const L = S.length ? 500 + S.length * 110 : 0;
+        for (const E of Object.keys(t)) {
+          const M = w.has(E);
+          M !== p.lanes.has(E) && Ra(E, M, m, M ? L : 0);
+        }
+        g !== p.page && En(g, m, g ? L + 200 : 0);
+      },
+      clear() {
+        for (const p of [...a.children, ...o.children])
+          p.animate([{ opacity: 1 }, { opacity: 0 }], {
+            duration: 160,
+          }).onfinish = () => p.remove();
+        (n.replaceChildren(),
+          Object.keys(t).forEach((p) => {
+            ((Qt[p] = 0), kn(p));
+          }));
+      },
+    }
+  );
+}
+const sp = {
+  network: { event: 450, step: 1100, quick: 120 },
+  sequence: { event: 260, step: 650, quick: 80 },
+};
+function np(e) {
+  return e.type === "packet"
+    ? e.quick
+      ? Mt.quick
+      : Mt.draw
+    : e.type === "stream"
+      ? (e.packets.length - 1) * Mt.stagger + Mt.draw
+      : e.type === "note"
+        ? Mt.note
+        : 0;
+}
+function ap(e, t, s, { mode: a = "network" } = {}) {
+  const n = [
+      { type: "focus", ...e.start, step: 0 },
+      ...e.steps.flatMap((R, x) => R.events.map((H) => ({ ...H, step: x }))),
+    ],
+    o = e.steps.map((R, x) => n.findLastIndex((H) => H.step === x));
+  let r = 0,
+    i = -1,
+    l = !1,
+    c = { cancelled: !1 },
+    h = null,
+    d = a;
+  function y() {
+    const R = r >= n.length && i === -1,
+      x = r > 0 || i !== -1,
+      H = i !== -1 ? i : r - 1,
+      we = H >= 0 ? n[H].step : 0,
+      ce = (A) => A.type === "packet" || A.type === "stream",
+      P = H >= 0 && ce(n[H]) ? H : -1;
+    return {
+      playing: l,
+      running: i !== -1,
+      started: x,
+      done: R,
+      activeStep: we,
+      event: H >= 0 ? n[H] : null,
+      steps: e.steps.map((A, _) =>
+        _ === we && x && !R ? "active" : o[_] < r ? "done" : "todo",
+      ),
+      packets: n.flatMap((A, _) => {
+        if (!ce(A)) return [];
+        const J = _ === P ? "current" : _ < r ? "past" : "future";
+        return A.type === "stream" ? A.packets.map(() => J) : [J];
+      }),
+      notes: n.flatMap((A, _) =>
+        A.type === "note" ? [_ < r || _ === i ? "past" : "future"] : [],
+      ),
+    };
+  }
+  let w = !1,
+    k = !1;
+  function g() {
+    w ||
+      ((w = !0),
+      queueMicrotask(() => {
+        ((w = !1), k || s(y()));
+      }));
+  }
+  function T() {
+    const R = t.snapshot();
+    (r === 0
+      ? t.overview(e.nodes, e.labels)
+      : n.slice(0, r).forEach((x) => t.apply(x)),
+      t.morph(R, c));
+  }
+  function v(R) {
+    const x = n[R + 1],
+      H = sp[d];
+    return x.step !== n[R].step
+      ? H.step
+      : x.quick && n[R].quick
+        ? H.quick
+        : H.event;
+  }
+  async function I() {
+    if (i !== -1) return;
+    if (r >= n.length) {
+      ((l = !1), g());
+      return;
+    }
+    const R = r,
+      x = c;
+    if (
+      ((i = R),
+      g(),
+      d === "sequence"
+        ? (t.apply(n[R]), await se(np(n[R]), x))
+        : await t.run(n[R], x),
+      x !== c ||
+        (x.finish && ((c = { cancelled: !1 }), t.clear(), t.apply(n[R])),
+        (i = -1),
+        (r = R + 1),
+        r >= n.length && (l = !1),
+        g(),
+        !l))
+    )
+      return;
+    const H = (h = { cancelled: !1 });
+    (await se(() => v(R), H), h === H && (h = null), !H.cancelled && l && I());
+  }
+  function q() {
+    ((c.cancelled = !0),
+      (c = { cancelled: !1 }),
+      h && (h.cancelled = !0),
+      (h = null),
+      (i = -1),
+      t.clear(),
+      Vt.resume());
+  }
+  function re() {
+    (q(), (l = !1), (r = 0), T(), g());
+  }
+  function C() {
+    (r >= n.length && i === -1 && re(),
+      (l = !0),
+      Vt.resume(),
+      g(),
+      i === -1 && !h && I());
+  }
+  function Z() {
+    ((l = !1), Vt.pause(), g());
+  }
+  return {
+    reset: re,
+    dispose() {
+      (q(), (l = !1), (k = !0));
+    },
+    toggle: () => (l ? Z() : C()),
+    pause: Z,
+    play: C,
+    step() {
+      ((l = !1),
+        h && (h.cancelled = !0),
+        (h = null),
+        Vt.resume(),
+        g(),
+        i === -1 && I());
+    },
+    setMode(R) {
+      R !== d &&
+        ((d = R),
+        R === "sequence" && i !== -1 && ((c.finish = !0), (c.cancelled = !0)));
+    },
+    jump(R) {
+      (q(), (r = n.findIndex((x) => x.step === R)), T(), C());
+    },
+  };
+}
+await Ol();
+const ve = document.querySelector("#app");
+ve.innerHTML = `
+  <div class="shell">
+    ${Bl()}
+    <main class="workspace">
+      ${zl(cs)}
+      ${Td()}
+      ${xd()}
+      ${Dd()}
+    </main>
+    <div class="scrim" aria-hidden="true"></div>
+  </div>
+`;
+const op = [
+    { name: "wide", min: 1440, canvas: 1672 },
+    { name: "medium", min: 1100, canvas: 1180 },
+    { name: "tablet", min: 900, canvas: 900 },
+    { name: "narrow", min: 640, canvas: 640 },
+    { name: "phone", min: 0, canvas: 380 },
+  ],
+  vt = document.documentElement,
+  ls = ve.querySelector(".shell");
+function La() {
+  const e = vt.clientWidth,
+    t = op.find((n) => e >= n.min),
+    s = t.name === "wide" ? e / t.canvas : Math.min(1, e / t.canvas),
+    a = !["wide", "medium"].includes(t.name);
+  ((vt.dataset.layout = t.name),
+    vt.classList.toggle("is-stacked", a),
+    vt.classList.toggle("is-single", t.name === "narrow" || t.name === "phone"),
+    a ? (Rs.inert = !vn()) : fs(!1),
+    (ls.style.zoom = s),
+    (ls.style.width = `${e / s}px`),
+    (ls.style.height = a ? "" : `${window.innerHeight / s}px`),
+    (ls.style.minHeight = a ? `${window.innerHeight / s}px` : ""),
+    Ta(ve));
+}
+const oa = ve.querySelector(".drawer-btn"),
+  Rs = ve.querySelector(".sidebar"),
+  vn = () => ls.classList.contains("is-drawer-open");
+function fs(e) {
+  const t = vt.classList.contains("is-stacked");
+  (ls.classList.toggle("is-drawer-open", e),
+    vt.classList.toggle("is-locked", e),
+    oa.setAttribute("aria-expanded", e),
+    (Rs.inert = t && !e),
+    e
+      ? Rs.querySelector(".drawer-close").focus({ preventScroll: !0 })
+      : t &&
+        Rs.contains(document.activeElement) &&
+        oa.focus({ preventScroll: !0 }));
+}
+oa.addEventListener("click", () => fs(!vn()));
+Rs.querySelector(".drawer-close").addEventListener("click", () => fs(!1));
+ve.querySelector(".scrim").addEventListener("click", () => fs(!1));
+La();
+window.addEventListener("resize", La);
+window.addEventListener("orientationchange", La);
+const Et = ve.querySelector(".topbar"),
+  Pa = ve.querySelector(".sidebar"),
+  Ca = ve.querySelector(".overview"),
+  kt = ve.querySelector(".packets"),
+  Fr = ve.querySelector(".simulation"),
+  Tn = ve.querySelector(".sequence");
+let lt = null,
+  le = null,
+  je = null;
+const ra = kd(Fr, (e) => le?.setMode(e)),
+  Kr = () =>
+    [...kt.querySelectorAll("tr[data-packet]")]
+      .filter((e) => !e.hidden && e.dataset.shown === "1")
+      .map((e) => Number(e.dataset.packet)),
+  Fe = bd(Fr.querySelector(".inspector"), {
+    visible: Kr,
+    onChange: (e) => {
+      for (const n of ve.querySelectorAll(".is-inspected"))
+        n.classList.remove("is-inspected");
+      if ((vt.classList.toggle("is-inspecting", e !== null), e === null))
+        return;
+      ve.querySelectorAll(
+        `tr[data-packet="${e}"], .seq-arrow[data-packet="${e}"]`,
+      ).forEach((n) => n.classList.add("is-inspected"));
+      const t = kt.querySelector(`tr[data-packet="${e}"]`),
+        s = kt.querySelector(".packet-scroll"),
+        a = kt.querySelector("thead").offsetHeight;
+      t.offsetTop < s.scrollTop + a
+        ? s.scrollTo({ top: t.offsetTop - a, behavior: "smooth" })
+        : t.offsetTop + t.offsetHeight > s.scrollTop + s.clientHeight &&
+          s.scrollTo({
+            top: t.offsetTop + t.offsetHeight - s.clientHeight,
+            behavior: "smooth",
+          });
+    },
+  }),
+  Ur = (e) => {
+    ((je?.playing || je?.running) && le.pause(), Fe.open(lt, e));
+  };
+Tn.addEventListener("click", (e) => {
+  const t = e.target.closest(".seq-arrow.is-shown");
+  t && Ur(Number(t.dataset.packet));
+});
+Vc(Tn);
+const Br = tp(ve.querySelector(".network"));
+ba(Et, cs);
+Vl(Et);
+function Gr(e, t = lt) {
+  (Yl(Et, e, t),
+    oc(Pa, e, t),
+    Nd(
+      Ca,
+      e,
+      t,
+      Xt.findIndex((a) => a.id === t.id),
+    ),
+    Fd(kt, e, t));
+  const s = Fe.index();
+  (s !== null && !Kr().includes(s) && Fe.close(), Qc(Tn, e, t));
+}
+function Yr(e) {
+  if (lt?.id === e) return le.reset();
+  (Fe.close(), le?.dispose(), (lt = cs[e]));
+  const t = lt;
+  ((le = ap(
+    t,
+    Br,
+    (s) => {
+      ((je = s), vl(t, s) && (ba(Et, cs), ac(Pa, cs)), Gr(s, t));
+    },
+    { mode: ra.view() },
+  )),
+    le.reset());
+}
+function Fo() {
+  (Cl(ve),
+    Fl(Et),
+    Ta(Et),
+    ba(Et, cs),
+    lt &&
+      (Od(Ca),
+      Kd(kt, lt),
+      Br.retext(),
+      xr(Tn),
+      Fe.isOpen() && Fe.open(lt, Fe.index()),
+      je && Gr(je)));
+}
+Il(() => {
+  if (!document.startViewTransition || ge()) return Fo();
+  (vt.classList.add("is-retexting"),
+    document
+      .startViewTransition(Fo)
+      .finished.finally(() => vt.classList.remove("is-retexting")));
+});
+Hl(Et, (e) => wr(e));
+const Ko = () => vn() && setTimeout(() => fs(!1), 220);
+tc(Pa, {
+  onStep: (e) => {
+    (le.jump(e), Ko());
+  },
+  onSelect: (e) => {
+    (Yr(e), Ko());
+  },
+});
+$d(Ca, () => le.reset());
+const on = [0.5, 1, 1.5, 2],
+  Wr = "protocol-explorer:speed";
+function jr(e, t = !0) {
+  if ((Vt.setSpeed(e), Ud(kt, e), t))
+    try {
+      localStorage.setItem(Wr, e);
+    } catch {}
+}
+try {
+  const e = Number(localStorage.getItem(Wr));
+  on.includes(e) && jr(e, !1);
+} catch {}
+const rp = () => jr(on[(on.indexOf(Vt.speed) + 1) % on.length]);
+document.fonts.ready.then(() => {
+  (Hr(kt), Ta(Et));
+});
+Hd(kt, {
+  toggle: () => le.toggle(),
+  step: () => le.step(),
+  reset: () => le.reset(),
+  prev: () => Vr(),
+  speed: rp,
+  inspect: Ur,
+});
+function ip() {
+  if (!je?.started) return le.jump(0);
+  je.activeStep < lt.steps.length - 1 && le.jump(je.activeStep + 1);
+}
+function Vr() {
+  if (je?.started) {
+    if (je.done) return le.jump(lt.steps.length - 1);
+    je.activeStep > 0 ? le.jump(je.activeStep - 1) : le.reset();
+  }
+}
+const Uo = () => (Fe.isOpen() ? Fe.step(1) : ip()),
+  Bo = () => (Fe.isOpen() ? Fe.step(-1) : Vr()),
+  lp = {
+    " ": () => le.toggle(),
+    ArrowRight: () => (us() ? Bo() : Uo()),
+    ArrowLeft: () => (us() ? Uo() : Bo()),
+    Escape: () => (vn() ? fs(!1) : Fe.isOpen() ? Fe.close() : le.reset()),
+    v: () => ra.toggle(),
+    V: () => ra.toggle(),
+  },
+  cp = (e) =>
+    e instanceof Element &&
+    e.closest('input, textarea, select, [contenteditable="true"], .lang-menu');
+for (const e of ["keydown", "keyup"])
+  window.addEventListener(e, (t) => {
+    const s = lp[t.key];
+    !s ||
+      !le ||
+      t.ctrlKey ||
+      t.metaKey ||
+      t.altKey ||
+      cp(t.target) ||
+      (t.preventDefault(), e === "keydown" && !t.repeat && s());
+  });
+document.fonts.ready.then(() => Yr("http"));

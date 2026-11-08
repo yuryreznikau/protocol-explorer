@@ -1,6 +1,6 @@
 {
-  "dependencies": {
-    "puppeteer": "^25.16.0",
-    "puppeteer-core": "^25.16.0"
-  }
+  "name": "protocol-explorer",
+  "private": true,
+  "type": "module",
+  "description": "Fork: application-layer protocols, SNMP/NetFlow/Syslog demos, RU/EN"
 }

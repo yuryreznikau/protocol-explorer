@@ -1,79 +1,73 @@
-# Protocol Explorer (Enhanced Edition)
+# Protocol Explorer — прикладной уровень / Application Layer Edition
 
-An interactive, visual learning tool for computer networking protocols, packet lifecycles, and network architecture.
+[Русский](#русский) · [English](#english)
 
-> [!IMPORTANT]
-> ### 📜 Attribution & Original Project
-> - **Original Website:** [https://protocol-explorer-alpha.vercel.app/](https://protocol-explorer-alpha.vercel.app/)
-> - **Original Author & Creator:** [Dilum Sanjaya](https://github.com/dilums)
-> 
-> *Credit Notice: The original concept, interactive visual engine, and foundational architecture belong to Dilum Sanjaya. This repository is an **upgraded and extended edition** that builds upon the original work to include next-generation protocols, advanced failure scenarios, and expanded internationalization.*
+Онлайн / Live: **https://yuryreznikau.github.io/protocol-explorer/**
 
 ---
 
-## 🌐 Live Demo
+## Русский
 
-Experience the full interactive simulation online:
+Интерактивный визуальный тренажёр по сетевым протоколам: пакеты движутся по схеме сети, а каждый можно открыть и разобрать по байтам, как в Wireshark.
 
-👉 **[https://alishafiee2003.github.io/protocol-explorer/](https://alishafiee2003.github.io/protocol-explorer/)**
+### Авторство
 
----
+- Оригинальный проект и визуальный движок: **Dilum Sanjaya** — [protocol-explorer-alpha.vercel.app](https://protocol-explorer-alpha.vercel.app/).
+- Расширенная версия, от которой сделан этот форк: [AliShafiee2003/protocol-explorer](https://github.com/AliShafiee2003/protocol-explorer).
 
-## ✨ Enhancements & Upgrades in this Edition
+### Что изменено в форке
 
-This fork significantly expands the scope and capabilities of the original explorer (from 14 to **21 comprehensive protocols**), adding modern internet protocols, realistic physics/timings, and diagnostic views:
+- **Только прикладной уровень (L7).** Уроки TCP, UDP, IP, ICMP и TLS удалены. Остались HTTP, HTTP/2, HTTP/3, DNS, DHCP, SMTP, POP3, IMAP, FTP, WebSocket, MQTT, SSE, Chunked, gRPC, а в группе «Безопасность» — HTTPS и SSH.
+- **Новая группа «Мониторинг»** с четырьмя демо:
+  - **SNMP** — v2c: GetRequest, GetNext (обход таблицы), GetBulk (счётчики трафика), SetRequest с ошибкой `noAccess`, потеря запроса и повтор, Trap linkDown (UDP 161/162). Полный BER-разбор PDU в инспекторе пакетов.
+  - **NetFlow v9** — Template FlowSet, Data FlowSet, потеря экспортного пакета (разрыв sequence), периодическая повторная отправка шаблона. Разбор полей по шаблону (UDP 2055).
+  - **Syslog/UDP** — приоритет (facility × 8 + severity), форматы RFC 3164 и RFC 5424, тихая потеря сообщений, фильтрация по severity (UDP 514).
+  - **Syslog/TCP** — TCP-соединение, сообщения с подсчётом октетов (RFC 6587), потеря сегмента и повторная передача (TCP 514).
+- **Интерфейс на русском и английском.** Язык по умолчанию — русский (английский, если язык браузера не ru/be/uk/kk); переключатель — в шапке. Добавлен кириллический шрифт Iosevka.
+- **Удалена RTL-локализация** (арабский, персидский, иврит) и остальные языки, а также шрифты Vazirmatn и стили направления справа налево.
+- Строки «на проводе» (колонка Info, тексты логов, команды протоколов) намеренно оставлены на английском — так они выглядят в реальном трафике.
 
-### 1. 🚀 7 Modern Protocols & Techniques Added
-- **HTTP/2:** Single-connection multiplexing, binary framing (`SETTINGS`, `HEADERS`, `DATA`), and HPACK header compression.
-- **HTTP/3 (QUIC):** 1-RTT UDP-based handshake, zero Head-of-Line blocking, connection migration, and encrypted frame flows.
-- **WebSocket:** Bidirectional real-time full-duplex communication via HTTP/1.1 upgrade (`101 Switching Protocols`), binary/text ping-pong heartbeats, and graceful closure codes.
-- **MQTT:** IoT publish-subscribe architecture with MQTT Broker, `CONNECT`/`CONNACK`, and both **QoS 0** (fire-and-forget) and **QoS 1** (acknowledged delivery with `PUBACK`).
-- **Server-Sent Events (SSE):** Lightweight server-to-client event streaming over `text/event-stream` with automatic reconnect capabilities.
-- **HTTP Chunked Transfer Encoding:** Dynamic stream transmission with `Transfer-Encoding: chunked`, hex chunk headers, and terminating zero-chunks (`0\r\n\r\n`).
-- **gRPC:** High-performance RPC over HTTP/2 with length-prefixed binary protobuf envelopes, streaming, and trailer metadata (`grpc-status`).
+### Сборка
 
-### 2. ⚡ Realistic Latency, Speed & Timing Differences
-- Accurately demonstrates real-world transport speed differences (e.g., 1-RTT QUIC UDP vs. 3-RTT TCP+TLS 1.3 handshakes).
-- Visualizes concurrent stream delivery without blocking versus serial transfer delays.
+Исходный проект — это готовая сборка Vite, поэтому форк собирается патчем поверх исходного бандла:
 
-### 3. ⚠️ Advanced Failure Modes & Edge Cases
-- **Packet Loss Simulation:** Packets dropping mid-transit (`lost: true`) with visual fades.
-- **Retransmission & SACK:** Visual modeling of duplicate ACKs (`DUP=1`), selective acknowledgments, and TCP retransmission timers.
-- **Head-of-Line (HoL) Blocking:** Demonstrates how TCP packet loss halts subsequent streams while QUIC continues unaffected.
-- **Protocol Disconnects & Status Errors:** Real-world error flows including gRPC status codes (`NOT_FOUND`, `DEADLINE_EXCEEDED`) and TCP resets (`RST`).
-
-### 4. 🔍 Byte-Level Packet Inspector
-- Wire-level binary decoders for all new protocols.
-- Deep inspection across all 4 OSI/TCP-IP layers (Ethernet, IPv4, TCP/UDP, Application).
-- Formatted hex dumps and decoded header details for educational analysis.
-
-### 5. 🌍 Full Multilingual Localization (15 Languages)
-- Fully translated into all 15 supported languages: **Persian (فارسی)**, **English**, **Arabic (العربية)**, **Spanish (Español)**, **French (Français)**, **German (Deutsch)**, **Turkish (Türkçe)**, **Portuguese (Português)**, **Indonesian (Bahasa Indonesia)**, **Japanese (日本語)**, **Simplified Chinese (简体中文)**, **Traditional Chinese (繁體中文)**, **Korean (한국어)**, **Hindi (हिन्दी)**, and **Hebrew (עברית)**.
-
----
-
-## 📚 All Protocols Covered (21 Total)
-
-- **Application Layer:** HTTP/1.1, HTTPS, HTTP/2, HTTP/3 (QUIC), WebSocket, MQTT, Server-Sent Events (SSE), Chunked Transfer, gRPC, DNS, DHCP, SMTP, POP3, IMAP, FTP, SSH
-- **Transport Layer:** TCP, UDP, TLS 1.3
-- **Network Layer:** IPv4, ICMP, ARP
-
----
-
-## 🚀 Running Locally (Offline)
-
-### Windows
-Double-click `start.bat` or run:
-```bat
-start.bat
-```
-
-### Any OS (Python / Node)
 ```bash
-python serve.py
+python3 tools/build.py          # tools/upstream.pretty.js + src/monitoring.js -> assets/index.js
+cd tools/i18n && node mkru.cjs  # переводы tools/i18n/tr/* -> assets/ru.js
+python3 serve.py                # или любой статический сервер, затем открыть http://localhost:8000 (или первый свободный порт)
 ```
-Or using Python's standard library:
+
+Деплой на GitHub Pages выполняется автоматически при пуше в `main` (`.github/workflows/deploy.yml`).
+
+---
+
+## English
+
+An interactive visual tutor for network protocols: packets travel across a network diagram, and you can open any of them and inspect it byte by byte, Wireshark-style.
+
+### Credits
+
+- Original project and visual engine: **Dilum Sanjaya** — [protocol-explorer-alpha.vercel.app](https://protocol-explorer-alpha.vercel.app/).
+- Extended edition this fork is based on: [AliShafiee2003/protocol-explorer](https://github.com/AliShafiee2003/protocol-explorer).
+
+### Changes in this fork
+
+- **Application layer (L7) only.** The TCP, UDP, IP, ICMP and TLS lessons were removed. Remaining: HTTP, HTTP/2, HTTP/3, DNS, DHCP, SMTP, POP3, IMAP, FTP, WebSocket, MQTT, SSE, Chunked, gRPC, plus HTTPS and SSH under "Security".
+- **New "Monitoring" group** with four demos:
+  - **SNMP** — v2c: GetRequest, GetNext (table walk), GetBulk (traffic counters), SetRequest failing with `noAccess`, lost request and retry, linkDown trap (UDP 161/162). Full BER decoding in the packet inspector.
+  - **NetFlow v9** — Template FlowSet, Data FlowSet, a lost export packet (sequence gap), periodic template refresh. Template-driven field decoding (UDP 2055).
+  - **Syslog/UDP** — priority (facility × 8 + severity), RFC 3164 and RFC 5424 formats, silent loss, severity filtering (UDP 514).
+  - **Syslog/TCP** — TCP connection, octet-counted messages (RFC 6587), a lost segment and retransmission (TCP 514).
+- **Russian and English UI.** Russian is the default (English when the browser language isn't ru/be/uk/kk); switch in the header.
+- **RTL localization removed** (Arabic, Persian, Hebrew) together with the other languages, the Vazirmatn fonts and right-to-left styles.
+- On-the-wire strings (Info column, log text, protocol commands) are intentionally kept in English.
+
+### Build
+
 ```bash
-python -m http.server 8000
+python3 tools/build.py
+cd tools/i18n && node mkru.cjs
+python3 serve.py
 ```
-Then open `http://localhost:8000` in your web browser.
+
+GitHub Pages deploys automatically on push to `main`.
